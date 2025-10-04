@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  mariadb:
+    image: mariadb:10.5.8
+    container_name: mariadb_dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - backend
+
+volumes:
+  mariadb_data:
+
+networks:
+  backend:
+    driver: bridge
