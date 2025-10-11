@@ -34,9 +34,9 @@ CREATE TABLE users (
 -- Insert sample data
 -- เพิ่มข้อมูลทดสอบ (password คือ "password123" ที่ถูก hash แล้ว)
 INSERT INTO users (username, email, full_name, password, role, status) VALUES
-('admin', 'admin@tipak.com', 'Super Admin', '$2b$10$AUuHjSSi1rwwKYXZFwSnC.x/8Xzj0JM155TWjzO6mr517eI0xOTVy', 'admin', 'active'),
-('john.doe', 'john@tipak.com', 'John Doe', '$2b$10$AUuHjSSi1rwwKYXZFwSnC.x/8Xzj0JM155TWjzO6mr517eI0xOTVy', 'member', 'active'),
-('jane.smith', 'jane@tipak.com', 'Jane Smith', '$2b$10$AUuHjSSi1rwwKYXZFwSnC.x/8Xzj0JM155TWjzO6mr517eI0xOTVy', 'member', 'active');
+('admin', 'admin@tipak.com', 'Super Admin', '$2b$10$0bqz.i.ROg7kMr/QkmLd1uAqnfARYqKCB6YV79RBJJ5h9CAdMBQ4e', 'admin', 'active'),
+('john.doe', 'john@tipak.com', 'John Doe', '$2b$10$0bqz.i.ROg7kMr/QkmLd1uAqnfARYqKCB6YV79RBJJ5h9CAdMBQ4e', 'member', 'active'),
+('jane.smith', 'jane@tipak.com', 'Jane Smith', '$2b$10$0bqz.i.ROg7kMr/QkmLd1uAqnfARYqKCB6YV79RBJJ5h9CAdMBQ4e', 'member', 'active');
 
 
 -- ถ้าตารางมีอยู่แล้ว ใช้คำสั่งนี้เพื่อเพิ่ม column role

@@ -24,7 +24,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     
     const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '50');
+    const pageSize = parseInt(searchParams.get('pageSize') || '100');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     

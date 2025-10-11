@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { RefreshCw, Database, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Download, FileSpreadsheet, FileText, Menu, X, Home, BarChart3, Settings, Calendar, Filter } from 'lucide-react';
-import Navbar from '../components/header/Navbar';
+import Navbar from '../../components/header/Navbar';
 
 interface SensorData {
   id: number;

@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { query } from '@/lib/db';
@@ -11,7 +11,8 @@ interface User {
   role: 'admin' | 'user';
 }
 
-const handler = NextAuth({
+// Export authOptions แยกออกมา
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -45,16 +46,11 @@ const handler = NextAuth({
 
           const user = users[0];
 
-          const encryptPassword = await bcrypt.hash(credentials.password, 10);
-          console.log('Encrypted Password:', encryptPassword);
-
           // ตรวจสอบรหัสผ่าน
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
-          
-          console.log("isPasswordValid: ", isPasswordValid)
 
           if (!isPasswordValid) {
             return null;
@@ -83,6 +79,7 @@ const handler = NextAuth({
       if (user) {
         token.username = (user as any).username;
         token.role = (user as any).role;
+        token.full_name = (user as any).full_name;
       }
       return token;
     },
@@ -100,9 +97,12 @@ const handler = NextAuth({
     },
   },
   pages: {
-    signIn: '/login', // หน้า login ที่คุณสร้างขึ้น
+    signIn: '/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+// ใช้ authOptions ที่ export แล้ว
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
