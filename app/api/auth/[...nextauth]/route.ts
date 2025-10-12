@@ -46,11 +46,16 @@ export const authOptions: NextAuthOptions = {
 
           const user = users[0];
 
+          const encryptPassword = await bcrypt.hash(credentials.password, 10);
+          console.log('Encrypted Password:', encryptPassword);
+
           // ตรวจสอบรหัสผ่าน
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
           );
+
+          console.log("isPasswordValid: ", isPasswordValid)
 
           if (!isPasswordValid) {
             return null;
