@@ -27,8 +27,12 @@ export async function GET(request: Request): Promise<NextResponse> {
     const pageSize = parseInt(searchParams.get('pageSize') || '100');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const sortOrder = searchParams.get('sortOrder') || 'desc'; // เพิ่มบรรทัดนี้
     
     const offset = (page - 1) * pageSize;
+    
+    // Validate sortOrder
+    const validSortOrder = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC'; // เพิ่มบรรทัดนี้
     
     // สร้าง WHERE clause สำหรับ date filter
     let whereClause = '';
@@ -55,11 +59,11 @@ export async function GET(request: Request): Promise<NextResponse> {
     const countResult = await query(countSql, params) as CountRow[];
     const totalItems = countResult[0].total;
     
-    // Data query
+    // Data query - แก้บรรทัดนี้เพื่อใช้ sortOrder
     const dataSql = `
       SELECT * FROM Sensors 
       ${whereClause}
-      ORDER BY record_time DESC 
+      ORDER BY record_time ${validSortOrder}
       LIMIT ? OFFSET ?
     `;
     

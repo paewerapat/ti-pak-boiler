@@ -58,18 +58,6 @@ function Navbar() {
               <BarChart className="w-4 h-4" />
               <span>รายงาน</span>
             </Link>
-            
-            <Link
-              href="/dashboard"
-              className={`flex items-center gap-2 ${
-                isActive("/dashboard")
-                  ? "text-blue-600 font-semibold"
-                  : "text-gray-600 hover:text-blue-600"
-              } transition-colors`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span>แดชบอร์ด</span>
-            </Link>
 
             {/* แสดงเมนู Users เฉพาะ Admin */}
             {isAdmin && (
