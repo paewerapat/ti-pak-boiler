@@ -20,14 +20,14 @@ import Navbar from "@/app/components/header/Navbar";
 
 interface SensorData {
   id: number;
-  SV1: string;
-  PT1: string;
-  Temp1: string;
-  Meter1: string;
-  Meter2: string;
-  Meter3: string;
-  Meter4: string;
-  Meter5: string;
+  sv_steam_setpoint: string;
+  pt_steam_pressure: string;
+  tc1_stack_temperature: string;
+  mt1_oil_supply_meter: string;
+  mt2_boiler_feed_meter: string;
+  mt3_soft_water_meter: string;
+  mt4_condensate_meter: string;
+  opt_oil_pressure: string;
   record_time: string;
 }
 
@@ -538,21 +538,21 @@ export default function ReportPage() {
           {sensors.length > 0 && (
             <>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">SV1</div>
+                <div className="text-xs sm:text-sm text-gray-500">sv_steam_setpoint</div>
                 <div className="text-lg sm:text-2xl font-bold text-blue-600">
-                  {formatNumber(sensors[0].SV1)}
+                  {formatNumber(sensors[0].sv_steam_setpoint)}
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">PT1</div>
+                <div className="text-xs sm:text-sm text-gray-500">pt_steam_pressure</div>
                 <div className="text-lg sm:text-2xl font-bold text-green-600">
-                  {formatNumber(sensors[0].PT1)}
+                  {formatNumber(sensors[0].pt_steam_pressure)}
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">Temp1</div>
+                <div className="text-xs sm:text-sm text-gray-500">tc1_stack_temperature</div>
                 <div className="text-lg sm:text-2xl font-bold text-orange-600">
-                  {formatNumber(sensors[0].Temp1)}°C
+                  {formatNumber(sensors[0].tc1_stack_temperature)}°C
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
@@ -598,28 +598,28 @@ export default function ReportPage() {
                       เวลาบันทึก
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      SV1
+                      Steam Setpoint
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      PT1
+                      Steam Pressure
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Temp1
+                      Stack Temperature
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter1
+                      Meter 1
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter2
+                      Meter 2
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter3
+                      Meter 3
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Meter4
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter5
+                      Oil Pressure
                     </th>
                   </tr>
                 </thead>
@@ -636,30 +636,30 @@ export default function ReportPage() {
                         {formatDateTime(sensor.record_time)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right font-medium">
-                        {formatNumber(sensor.SV1)}
+                        {formatNumber(sensor.sv_steam_setpoint)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right font-medium">
-                        {formatNumber(sensor.PT1)}
+                        {formatNumber(sensor.pt_steam_pressure)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right font-medium">
-                        <span className={getStatusColor(sensor.Temp1, 35, 43)}>
-                          {formatNumber(sensor.Temp1)}
+                        <span className={getStatusColor(sensor.tc1_stack_temperature, 35, 43)}>
+                          {formatNumber(sensor.tc1_stack_temperature)}
                         </span>
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right text-gray-600">
-                        {formatNumber(sensor.Meter1)}
+                        {formatNumber(sensor.mt1_oil_supply_meter)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right text-gray-600">
-                        {formatNumber(sensor.Meter2)}
+                        {formatNumber(sensor.mt2_boiler_feed_meter)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right text-gray-600">
-                        {formatNumber(sensor.Meter3)}
+                        {formatNumber(sensor.mt3_soft_water_meter)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right text-gray-600">
-                        {formatNumber(sensor.Meter4)}
+                        {formatNumber(sensor.mt4_condensate_meter)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right text-gray-600">
-                        {formatNumber(sensor.Meter5)}
+                        {formatNumber(sensor.opt_oil_pressure)}
                       </td>
                     </tr>
                   ))}

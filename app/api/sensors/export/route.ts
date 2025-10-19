@@ -4,14 +4,14 @@ import { RowDataPacket } from 'mysql2/promise';
 
 interface SensorRow extends RowDataPacket {
   id: number;
-  SV1: string;
-  PT1: string;
-  Temp1: string;
-  Meter1: string;
-  Meter2: string;
-  Meter3: string;
-  Meter4: string;
-  Meter5: string;
+  sv_steam_setpoint: string;
+  pt_steam_pressure: string;
+  tc1_stack_temperature: string;
+  mt1_oil_supply_meter: string;
+  mt2_boiler_feed_meter: string;
+  mt3_soft_water_meter: string;
+  mt4_condensate_meter: string;
+  opt_oil_pressure: string;
   record_time: string;
 }
 
@@ -23,7 +23,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     const endDate = searchParams.get('endDate');
     const metricsParam = searchParams.get('metrics'); // รับ selectedMetrics จาก query
     
-    // Parse metrics (เช่น "Temp1,SV1,PT1")
     const selectedMetrics = metricsParam ? metricsParam.split(',') : [];
     
     // สร้าง WHERE clause สำหรับ date filter
@@ -48,7 +47,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     
     // Query ข้อมูล (ทั้งหมดหรือตาม filter)
     const sql = `
-      SELECT * FROM Sensors 
+      SELECT * FROM sensors 
       ${whereClause}
       ORDER BY record_time DESC
     `;
@@ -56,7 +55,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const results = await query(sql, params) as SensorRow[];
     
     // สร้าง headers และ columns ตาม selectedMetrics
-    const allColumns = ['SV1', 'PT1', 'Temp1', 'Meter1', 'Meter2', 'Meter3', 'Meter4', 'Meter5'];
+    const allColumns = ['sv_steam_setpoint', 'pt_steam_pressure', 'tc1_stack_temperature', 'mt1_oil_supply_meter', 'mt2_boiler_feed_meter', 'mt3_soft_water_meter', 'mt4_condensate_meter', 'opt_oil_pressure'];
     const columnsToExport = selectedMetrics.length > 0 
       ? selectedMetrics.filter(m => allColumns.includes(m)) 
       : allColumns;

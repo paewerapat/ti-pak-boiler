@@ -4,14 +4,14 @@ import { RowDataPacket } from 'mysql2/promise';
 
 interface SensorRow extends RowDataPacket {
   id: number;
-  SV1: string;
-  PT1: string;
-  Temp1: string;
-  Meter1: string;
-  Meter2: string;
-  Meter3: string;
-  Meter4: string;
-  Meter5: string;
+  sv_steam_setpoint: string;
+  pt_steam_pressure: string;
+  tc1_stack_temperature: string;
+  mt1_oil_supply_meter: string;
+  mt2_boiler_feed_meter: string;
+  mt3_soft_water_meter: string;
+  mt4_condensate_meter: string;
+  opt_oil_pressure: string;
   record_time: string;
 }
 
@@ -55,13 +55,13 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
     
     // Count query
-    const countSql = `SELECT COUNT(*) as total FROM Sensors ${whereClause}`;
+    const countSql = `SELECT COUNT(*) as total FROM sensors ${whereClause}`;
     const countResult = await query(countSql, params) as CountRow[];
     const totalItems = countResult[0].total;
     
     // Data query - แก้บรรทัดนี้เพื่อใช้ sortOrder
     const dataSql = `
-      SELECT * FROM Sensors 
+      SELECT * FROM sensors 
       ${whereClause}
       ORDER BY record_time ${validSortOrder}
       LIMIT ? OFFSET ?

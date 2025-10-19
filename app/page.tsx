@@ -7,28 +7,28 @@ import { Calendar, Filter, X } from 'lucide-react';
 
 interface SensorData {
   id: number;
-  SV1: string;
-  PT1: string;
-  Temp1: string;
-  Meter1: string;
-  Meter2: string;
-  Meter3: string;
-  Meter4: string;
-  Meter5: string;
+  sv_steam_setpoint: string;
+  pt_steam_pressure: string;
+  tc1_stack_temperature: string;
+  mt1_oil_supply_meter: string;
+  mt2_boiler_feed_meter: string;
+  mt3_soft_water_meter: string;
+  mt4_condensate_meter: string;
+  opt_oil_pressure: string;
   record_time: string;
 }
 
 interface ChartDataPoint {
   time: string;
   fullTime: string;
-  SV1: number;
-  PT1: number;
-  Temp1: number;
-  Meter1: number;
-  Meter2: number;
-  Meter3: number;
-  Meter4: number;
-  Meter5: number;
+  sv_steam_setpoint: number;
+  pt_steam_pressure: number;
+  tc1_stack_temperature: number;
+  mt1_oil_supply_meter: number;
+  mt2_boiler_feed_meter: number;
+  mt3_soft_water_meter: number;
+  mt4_condensate_meter: number;
+  opt_oil_pressure: number;
 }
 
 export default function Dashboard() {
@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['Temp1', 'SV1', 'PT1']);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['tc1_stack_temperature', 'sv_steam_setpoint', 'pt_steam_pressure']);
   const [tooltipData, setTooltipData] = useState<any>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [pageSize, setPageSize] = useState<number>(1000);
@@ -45,14 +45,14 @@ export default function Dashboard() {
   const brushDebounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const metrics = [
-    { key: 'SV1', label: 'SV1', color: '#3b82f6', unit: '' },
-    { key: 'PT1', label: 'PT1', color: '#10b981', unit: '' },
-    { key: 'Temp1', label: 'Temperature', color: '#f59e0b', unit: '°C' },
-    { key: 'Meter1', label: 'Meter 1', color: '#8b5cf6', unit: '' },
-    { key: 'Meter2', label: 'Meter 2', color: '#ec4899', unit: '' },
-    { key: 'Meter3', label: 'Meter 3', color: '#06b6d4', unit: '' },
-    { key: 'Meter4', label: 'Meter 4', color: '#f43f5e', unit: '' },
-    { key: 'Meter5', label: 'Meter 5', color: '#84cc16', unit: '' },
+    { key: 'sv_steam_setpoint', label: 'Steam Setpoint', color: '#3b82f6', unit: '' },
+    { key: 'pt_steam_pressure', label: 'Steam Pressure', color: '#10b981', unit: '' },
+    { key: 'tc1_stack_temperature', label: 'Stack Temperature', color: '#f59e0b', unit: '°C' },
+    { key: 'mt1_oil_supply_meter', label: 'Meter 1', color: '#8b5cf6', unit: '' },
+    { key: 'mt2_boiler_feed_meter', label: 'Meter 2', color: '#ec4899', unit: '' },
+    { key: 'mt3_soft_water_meter', label: 'Meter 3', color: '#06b6d4', unit: '' },
+    { key: 'mt4_condensate_meter', label: 'Meter 4', color: '#f43f5e', unit: '' },
+    { key: 'opt_oil_pressure', label: 'Oil Pressure', color: '#84cc16', unit: '' },
   ];
 
   const handleFilter = () => {
@@ -129,14 +129,14 @@ export default function Dashboard() {
       fullTime: new Date(sensor.record_time).toLocaleString('th-TH', {
         hour12: false // ใช้ระบบ 24 ชั่วโมง
       }),
-      SV1: parseFloat(sensor.SV1),
-      PT1: parseFloat(sensor.PT1),
-      Temp1: parseFloat(sensor.Temp1),
-      Meter1: parseFloat(sensor.Meter1),
-      Meter2: parseFloat(sensor.Meter2),
-      Meter3: parseFloat(sensor.Meter3),
-      Meter4: parseFloat(sensor.Meter4),
-      Meter5: parseFloat(sensor.Meter5),
+      sv_steam_setpoint: parseFloat(sensor.sv_steam_setpoint),
+      pt_steam_pressure: parseFloat(sensor.pt_steam_pressure),
+      tc1_stack_temperature: parseFloat(sensor.tc1_stack_temperature),
+      mt1_oil_supply_meter: parseFloat(sensor.mt1_oil_supply_meter),
+      mt2_boiler_feed_meter: parseFloat(sensor.mt2_boiler_feed_meter),
+      mt3_soft_water_meter: parseFloat(sensor.mt3_soft_water_meter),
+      mt4_condensate_meter: parseFloat(sensor.mt4_condensate_meter),
+      opt_oil_pressure: parseFloat(sensor.opt_oil_pressure),
     })).reverse(); // เรียงจากเก่าไปใหม่
     
     console.log('Chart data prepared:', data.length, 'points'); // Debug

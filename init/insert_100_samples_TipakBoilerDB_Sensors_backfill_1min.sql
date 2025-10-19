@@ -6,7 +6,7 @@
 
 USE TipakBoilerDB;
 
-INSERT INTO Sensors (SV1, PT1, Temp1, Meter1, Meter2, Meter3, Meter4, Meter5, record_time)
+INSERT INTO sensors (sv_steam_setpoint, pt_steam_pressure, tc1_stack_temperature, mt1_oil_supply_meter, mt2_boiler_feed_meter, mt3_soft_water_meter, mt4_condensate_meter, opt_oil_pressure, record_time)
 VALUES
   (1.03, 0.99, 34.90, 1000.32, 499.62, 199.99, 50.02, 10.01, NOW() - INTERVAL 99 MINUTE),
   (1.46, 1.26, 35.50, 1005.35, 502.53, 201.47, 50.67, 10.13, NOW() - INTERVAL 98 MINUTE),
