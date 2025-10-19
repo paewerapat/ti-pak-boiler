@@ -68,7 +68,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     `;
     
     const results = await query(dataSql, [...params, pageSize, offset]) as SensorRow[];
-    console.log("results: ", results)
     
     const totalPages = Math.ceil(totalItems / pageSize);
     const hasNextPage = page < totalPages;
