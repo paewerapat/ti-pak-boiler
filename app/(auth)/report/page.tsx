@@ -14,7 +14,6 @@ import {
   Calendar,
   Filter,
   ArrowUpDown,
-  Clock,
 } from "lucide-react";
 import Navbar from "@/app/components/header/Navbar";
 
@@ -44,9 +43,21 @@ interface PaginationResponse {
 }
 
 export default function ReportPage() {
+  // ฟังก์ชันสำหรับแปลงเวลาปัจจุบันเป็น datetime-local format (เวลาไทย)
+  const getThaiDateTimeLocal = (): string => {
+    const now = new Date();
+    const thaiOffset = 7 * 60 * 60 * 1000;
+    const thaiTime = new Date(now.getTime() + thaiOffset);
+    
+    const year = thaiTime.getUTCFullYear();
+    const month = String(thaiTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(thaiTime.getUTCDate()).padStart(2, '0');
+    const hours = String(thaiTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(thaiTime.getUTCMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
-  const now = new Date();
-  const formatted = now.toISOString().slice(0, 16);
   const [sensors, setSensors] = useState<SensorData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +71,7 @@ export default function ReportPage() {
   const [totalItems, setTotalItems] = useState<number>(0);
 
   const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>(formatted);
+  const [endDate, setEndDate] = useState<string>(getThaiDateTimeLocal());
   const [isFiltered, setIsFiltered] = useState<boolean>(false);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
@@ -151,7 +162,7 @@ export default function ReportPage() {
 
   const handleClearFilter = () => {
     setStartDate("");
-    setEndDate("");
+    setEndDate(getThaiDateTimeLocal());
     setIsFiltered(false);
     setCurrentPage(1);
     fetchSensors(1, pageSize, undefined, undefined, sortOrder);
@@ -248,15 +259,16 @@ export default function ReportPage() {
   };
 
   const formatDateTime = (dateString: string): string => {
-    return new Date(dateString).toLocaleString("th-TH", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
+    // ข้อมูลจาก DB เป็น GMT+7 อยู่แล้ว แค่ format ให้สวย
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
   const getStatusColor = (value: string, min: number, max: number): string => {
@@ -397,7 +409,7 @@ export default function ReportPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <Calendar className="w-4 h-4 inline mr-1" />
-                    วันที่เริ่มต้น
+                    วันที่เริ่มต้น (เวลาไทย)
                   </label>
                   <input
                     type="datetime-local"
@@ -409,7 +421,7 @@ export default function ReportPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <Calendar className="w-4 h-4 inline mr-1" />
-                    วันที่สิ้นสุด
+                    วันที่สิ้นสุด (เวลาไทย)
                   </label>
                   <div className="flex gap-2">
                     <input

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
-import Navbar from './components/header/Navbar';
 import { Calendar, Filter, X } from 'lucide-react';
 
 interface SensorData {
@@ -41,7 +40,7 @@ export default function Dashboard() {
   const [tooltipData, setTooltipData] = useState<any>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [pageSize, setPageSize] = useState<number>(1000);
-  const [timeRange, setTimeRange] = useState<string>('1hour'); // Default 1 ชั่วโมง
+  const [timeRange, setTimeRange] = useState<string>('1hour');
   const brushDebounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const metrics = [
@@ -61,16 +60,15 @@ export default function Dashboard() {
       return;
     }
     
+    // ส่งเวลาไทยไปตามที่ user เลือกเลย (ไม่ต้องแปลง UTC)
     console.log('Custom filtering from:', startDate, 'to:', endDate, 'pageSize:', pageSize);
     setChartData([]);
     fetchSensors(startDate, endDate, pageSize);
   };
 
   useEffect(() => {
-    // Set default to 1 hour ago
     updateTimeRange('1hour');
     
-    // Cleanup debounce timer เมื่อ component unmount
     return () => {
       if (brushDebounceTimer.current) {
         clearTimeout(brushDebounceTimer.current);
@@ -82,35 +80,32 @@ export default function Dashboard() {
     if (sensors.length > 0) {
       prepareChartData();
     } else {
-      setChartData([]); // ถ้าไม่มีข้อมูลให้ clear กราฟ
+      setChartData([]);
     }
-  }, [sensors]); // เมื่อ sensors เปลี่ยนให้ update กราฟใหม่
+  }, [sensors]);
 
   const fetchSensors = async (start?: string, end?: string, limit?: number) => {
     try {
       setLoading(true);
       
-      // ใช้ pageSize ที่เลือกจาก UI
       const itemsPerPage = limit || pageSize;
       let url = `/api/sensors?pageSize=${itemsPerPage}`;
       
       if (start) {
-        // แปลง datetime-local format เป็น ISO string
-        const startISO = new Date(start).toISOString();
-        url += `&startDate=${encodeURIComponent(startISO)}`;
+        // ส่งเวลาไทยไปเลย (datetime-local format หรือ ISO string)
+        url += `&startDate=${encodeURIComponent(start)}`;
       }
       if (end) {
-        const endISO = new Date(end).toISOString();
-        url += `&endDate=${encodeURIComponent(endISO)}`;
+        url += `&endDate=${encodeURIComponent(end)}`;
       }
       
-      console.log('Fetching:', url); // Debug
+      console.log('Fetching:', url);
       
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch data');
       
       const result = await response.json();
-      console.log('Received data:', result.data?.length, 'rows'); // Debug
+      console.log('Received data:', result.data?.length, 'rows');
       setSensors(result.data || []);
     } catch (err) {
       console.error('Fetch error:', err);
@@ -120,75 +115,84 @@ export default function Dashboard() {
   };
 
   const prepareChartData = () => {
-    const data: ChartDataPoint[] = sensors.map(sensor => ({
-      time: new Date(sensor.record_time).toLocaleTimeString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false // ใช้ระบบ 24 ชั่วโมง
-      }),
-      fullTime: new Date(sensor.record_time).toLocaleString('th-TH', {
-        hour12: false // ใช้ระบบ 24 ชั่วโมง
-      }),
-      sv_steam_setpoint: parseFloat(sensor.sv_steam_setpoint),
-      pt_steam_pressure: parseFloat(sensor.pt_steam_pressure),
-      tc1_stack_temperature: sensor.tc1_stack_temperature,
-      mt1_oil_supply_meter: parseFloat(sensor.mt1_oil_supply_meter),
-      mt2_boiler_feed_meter: parseFloat(sensor.mt2_boiler_feed_meter),
-      mt3_soft_water_meter: parseFloat(sensor.mt3_soft_water_meter),
-      mt4_condensate_meter: parseFloat(sensor.mt4_condensate_meter),
-      opt_oil_pressure: parseFloat(sensor.opt_oil_pressure),
-    })).reverse(); // เรียงจากเก่าไปใหม่
+    const data: ChartDataPoint[] = sensors.map(sensor => {
+      // ข้อมูลที่ได้มาเป็นเวลาไทย (GMT+7) อยู่แล้ว ไม่ต้อง convert
+      const recordDate = new Date(sensor.record_time);
+      
+      return {
+        time: recordDate.toLocaleTimeString('th-TH', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }),
+        fullTime: recordDate.toLocaleString('th-TH', {
+          hour12: false
+        }),
+        sv_steam_setpoint: parseFloat(sensor.sv_steam_setpoint),
+        pt_steam_pressure: parseFloat(sensor.pt_steam_pressure),
+        tc1_stack_temperature: sensor.tc1_stack_temperature,
+        mt1_oil_supply_meter: parseFloat(sensor.mt1_oil_supply_meter),
+        mt2_boiler_feed_meter: parseFloat(sensor.mt2_boiler_feed_meter),
+        mt3_soft_water_meter: parseFloat(sensor.mt3_soft_water_meter),
+        mt4_condensate_meter: parseFloat(sensor.mt4_condensate_meter),
+        opt_oil_pressure: parseFloat(sensor.opt_oil_pressure),
+      };
+    }).reverse();
     
-    console.log('Chart data prepared:', data.length, 'points'); // Debug
+    console.log('Chart data prepared:', data.length, 'points');
     setChartData(data);
   };
 
   const formatDatetimeLocal = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    // รับ Date ที่เป็นเวลาไทยแล้ว แค่ format ให้ถูกต้อง
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   const updateTimeRange = (range: string) => {
-    const end = new Date();
-    let start = new Date();
+    // ใช้เวลาไทย (GMT+7) เป็นฐาน
+    const now = new Date();
+    const thaiOffset = 7 * 60 * 60 * 1000;
+    const thaiNow = new Date(now.getTime() + thaiOffset);
+    
+    let thaiStart = new Date(thaiNow);
     let size = 1000;
 
     switch (range) {
       case '1hour':
-        start = new Date(end.getTime() - 1 * 60 * 60 * 1000);
-        size = 360; // ~10 วินาทีต่อจุด
+        thaiStart = new Date(thaiNow.getTime() - 1 * 60 * 60 * 1000);
+        size = 360;
         break;
       case '24hours':
-        start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-        size = 1440; // 1 นาทีต่อจุด
+        thaiStart = new Date(thaiNow.getTime() - 24 * 60 * 60 * 1000);
+        size = 1440;
         break;
       case '1week':
-        start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
-        size = 2016; // ~5 นาทีต่อจุด
+        thaiStart = new Date(thaiNow.getTime() - 7 * 24 * 60 * 60 * 1000);
+        size = 2016;
         break;
       case '1month':
-        start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
-        size = 3000; // ~15 นาทีต่อจุด
+        thaiStart = new Date(thaiNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+        size = 3000;
         break;
       case 'custom':
-        // ใช้ค่าที่ user เลือกเอง
         return;
       default:
-        start = new Date(end.getTime() - 1 * 60 * 60 * 1000);
+        thaiStart = new Date(thaiNow.getTime() - 1 * 60 * 60 * 1000);
         size = 360;
     }
 
     setTimeRange(range);
-    setStartDate(formatDatetimeLocal(start));
-    setEndDate(formatDatetimeLocal(end));
+    setStartDate(formatDatetimeLocal(thaiStart));
+    setEndDate(formatDatetimeLocal(thaiNow));
     setPageSize(size);
     
-    // โหลดข้อมูลทันที
-    fetchSensors(formatDatetimeLocal(start), formatDatetimeLocal(end), size);
+    // ส่งเวลาไทยไปเลย (ไม่ต้องแปลง UTC)
+    fetchSensors(formatDatetimeLocal(thaiStart), formatDatetimeLocal(thaiNow), size);
   };
 
   const handleTimeRangeChange = (range: string) => {
@@ -208,7 +212,6 @@ export default function Dashboard() {
   };
 
   const handleBrushChange = (domain: any) => {
-    // ใช้ debounce เพื่อให้รอ 500ms หลังจากลากเสร็จค่อย update
     if (brushDebounceTimer.current) {
       clearTimeout(brushDebounceTimer.current);
     }
@@ -217,7 +220,7 @@ export default function Dashboard() {
       if (domain && domain.startIndex !== undefined && domain.endIndex !== undefined) {
         console.log('Brush zoom:', domain.startIndex, 'to', domain.endIndex);
       }
-    }, 500); // รอ 500ms หลังจากหยุดลาก
+    }, 500);
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -259,10 +262,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Navbar />
+      <div className="bg-white shadow-sm border-b px-6 py-4">
+        <h1 className="text-xl font-bold text-gray-800">Sensor Dashboard</h1>
+      </div>
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Dashboard - History Trend Chart</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -270,7 +274,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
           {metrics.slice(0, 5).map(metric => {
             const value = latestData ? parseFloat(latestData[metric.key as keyof SensorData] as string) : 0;
@@ -285,13 +288,10 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Chart Section */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">History Trend Chart</h2>
 
-          {/* Filter Controls */}
           <div className="mb-6">
-            {/* Time Range Selector */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -310,13 +310,12 @@ export default function Dashboard() {
                 </select>
               </div>
 
-              {/* Custom Date Range (แสดงเมื่อเลือก custom) */}
               {timeRange === 'custom' && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <Calendar className="w-4 h-4 inline mr-1" />
-                      วันที่เริ่มต้น
+                      วันที่เริ่มต้น (เวลาไทย)
                     </label>
                     <input
                       type="datetime-local"
@@ -328,7 +327,7 @@ export default function Dashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <Calendar className="w-4 h-4 inline mr-1" />
-                      วันที่สิ้นสุด
+                      วันที่สิ้นสุด (เวลาไทย)
                     </label>
                     <input
                       type="datetime-local"
@@ -341,7 +340,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Custom Filter Button */}
             {timeRange === 'custom' && (
               <button
                 onClick={handleFilter}
@@ -352,7 +350,6 @@ export default function Dashboard() {
               </button>
             )}
 
-            {/* Metric Toggles */}
             <div className="flex flex-wrap gap-2">
               {metrics.map(metric => (
                 <button
@@ -371,7 +368,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Chart */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200" style={{ height: '600px' }}>
             {loading ? (
               <div className="flex items-center justify-center h-full">
@@ -460,7 +456,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Latest Values Table */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-4 bg-gray-50 border-b border-gray-200">
             <h3 className="font-semibold text-gray-800">ค่าล่าสุด</h3>
@@ -497,7 +492,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Custom Tooltip Popup */}
       {showTooltip && tooltipData && (
         <>
           <div 
