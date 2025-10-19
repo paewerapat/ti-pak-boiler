@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from 'recharts';
 import { Calendar, Filter, X } from 'lucide-react';
+import Navbar from './components/header/Navbar';
 
 interface SensorData {
   id: number;
@@ -262,9 +263,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="bg-white shadow-sm border-b px-6 py-4">
-        <h1 className="text-xl font-bold text-gray-800">Sensor Dashboard</h1>
-      </div>
+      <Navbar />
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
