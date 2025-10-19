@@ -9,7 +9,7 @@ interface SensorData {
   id: number;
   sv_steam_setpoint: string;
   pt_steam_pressure: string;
-  tc1_stack_temperature: string;
+  tc1_stack_temperature: number;
   mt1_oil_supply_meter: string;
   mt2_boiler_feed_meter: string;
   mt3_soft_water_meter: string;
@@ -131,7 +131,7 @@ export default function Dashboard() {
       }),
       sv_steam_setpoint: parseFloat(sensor.sv_steam_setpoint),
       pt_steam_pressure: parseFloat(sensor.pt_steam_pressure),
-      tc1_stack_temperature: parseFloat(sensor.tc1_stack_temperature),
+      tc1_stack_temperature: sensor.tc1_stack_temperature,
       mt1_oil_supply_meter: parseFloat(sensor.mt1_oil_supply_meter),
       mt2_boiler_feed_meter: parseFloat(sensor.mt2_boiler_feed_meter),
       mt3_soft_water_meter: parseFloat(sensor.mt3_soft_water_meter),

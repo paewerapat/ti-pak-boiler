@@ -22,7 +22,7 @@ interface SensorData {
   id: number;
   sv_steam_setpoint: string;
   pt_steam_pressure: string;
-  tc1_stack_temperature: string;
+  tc1_stack_temperature: number;
   mt1_oil_supply_meter: string;
   mt2_boiler_feed_meter: string;
   mt3_soft_water_meter: string;
@@ -552,7 +552,7 @@ export default function ReportPage() {
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
                 <div className="text-xs sm:text-sm text-gray-500">tc1_stack_temperature</div>
                 <div className="text-lg sm:text-2xl font-bold text-orange-600">
-                  {formatNumber(sensors[0].tc1_stack_temperature)}°C
+                  {sensors[0].tc1_stack_temperature}°C
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
@@ -642,8 +642,8 @@ export default function ReportPage() {
                         {formatNumber(sensor.pt_steam_pressure)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right font-medium">
-                        <span className={getStatusColor(sensor.tc1_stack_temperature, 35, 43)}>
-                          {formatNumber(sensor.tc1_stack_temperature)}
+                        <span className={getStatusColor(String(sensor.tc1_stack_temperature), 35, 43)}>
+                          {sensor.tc1_stack_temperature}
                         </span>
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right text-gray-600">

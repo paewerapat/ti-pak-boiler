@@ -6,7 +6,7 @@ interface SensorRow extends RowDataPacket {
   id: number;
   sv_steam_setpoint: string;
   pt_steam_pressure: string;
-  tc1_stack_temperature: string;
+  tc1_stack_temperature: number;
   mt1_oil_supply_meter: string;
   mt2_boiler_feed_meter: string;
   mt3_soft_water_meter: string;
@@ -68,6 +68,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     `;
     
     const results = await query(dataSql, [...params, pageSize, offset]) as SensorRow[];
+    console.log("results: ", results)
     
     const totalPages = Math.ceil(totalItems / pageSize);
     const hasNextPage = page < totalPages;
