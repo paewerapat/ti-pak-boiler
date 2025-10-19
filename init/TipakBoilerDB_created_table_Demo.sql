@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS TipakBoilerDB.sensors (
   `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `sv_steam_setpoint` decimal(5,2) DEFAULT NULL,
   `pt_steam_pressure` decimal(5,2) DEFAULT NULL,
-  `tc1_stack_temperature` decimal(6,2) DEFAULT NULL,
+  `tc1_stack_temperature` int(4) DEFAULT NULL,
   `mt1_oil_supply_meter` decimal(10,2) DEFAULT NULL,
   `mt2_boiler_feed_meter` decimal(10,2) DEFAULT NULL,
   `mt3_soft_water_meter` decimal(10,2) DEFAULT NULL,
