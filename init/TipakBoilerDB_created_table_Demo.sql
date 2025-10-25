@@ -46,3 +46,19 @@ INSERT INTO users (username, email, full_name, password, role, status) VALUES
 ('admin', 'admin@tipak.com', 'Super Admin', '$2b$10$0bqz.i.ROg7kMr/QkmLd1uAqnfARYqKCB6YV79RBJJ5h9CAdMBQ4e', 'admin', 'active'),
 ('john.doe', 'john@tipak.com', 'John Doe', '$2b$10$0bqz.i.ROg7kMr/QkmLd1uAqnfARYqKCB6YV79RBJJ5h9CAdMBQ4e', 'member', 'active'),
 ('jane.smith', 'jane@tipak.com', 'Jane Smith', '$2b$10$0bqz.i.ROg7kMr/QkmLd1uAqnfARYqKCB6YV79RBJJ5h9CAdMBQ4e', 'member', 'active');
+
+CREATE TABLE alarms (
+  `id` int(10) NOT NULL,
+  `name` enum('PLC_BATTER_LOW','STEAM_HIGH_PRESS','BURNER_FAIL','MOTOR_FAIL','STEAM_LOW_PRESS','FLOW_SWITCH_FEED','STEAM_PRESS_EXT','STACK_HIGH_TEMP','BOILER_LOW1','BOILER_EXTRA_LOW2','OIL_PRESS_TRANSM','PRESS_TRANSMIT','EMERGENCY_STOP','ELECTRICAL_FAILURE') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `alarm_content` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` tinyint(1) NOT NULL COMMENT '0=ปกติ, 1=Alarm',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `ended_at` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+INSERT INTO alarms (`id`, `name`, `alarm_content`, `status`, `created_at`, `ended_at`) VALUES
+(1, 'PLC_BATTER_LOW', 'BAT LOW', 0, '2025-10-19 16:03:25', '2025-10-19 16:03:44'),
+(2, 'STEAM_HIGH_PRESS', 'HIGH PRESSURE', 0, '2025-10-19 16:06:49', NULL),
+(3, 'PLC_BATTER_LOW', 'BATT LOW', 0, '2025-10-19 16:14:54', '2025-10-19 16:28:38'),
+(4, 'STACK_HIGH_TEMP', 'STACK TEMP HIGH', 1, '2025-10-19 16:16:13', NULL);

@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, BarChart3, Database, Home, Menu, User, X, LogOut } from "lucide-react";
+import { BarChart, BarChart3, Database, Home, Menu, User, X, LogOut, BellRing } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -57,6 +57,18 @@ function Navbar() {
             >
               <BarChart className="w-4 h-4" />
               <span>รายงาน</span>
+            </Link>
+            
+            <Link
+              href="/alarms"
+              className={`flex items-center gap-2 ${
+                isActive("/alarms")
+                  ? "text-blue-600 font-semibold"
+                  : "text-gray-600 hover:text-blue-600"
+              } transition-colors`}
+            >
+              <BellRing className="w-4 h-4" />
+              <span>การแจ้งเตือน</span>
             </Link>
 
             {/* แสดงเมนู Users เฉพาะ Admin */}
