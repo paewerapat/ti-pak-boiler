@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db'; // ใช้ connection pool ที่มีอยู่แล้ว
+import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2/promise';
 
 interface AlarmRow extends RowDataPacket {
@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     
-    // รับ query parameters
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const sortBy = searchParams.get('sortBy') || 'created_at';
@@ -23,64 +22,64 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const startDate = searchParams.get('startDate') || '';
     const endDate = searchParams.get('endDate') || '';
-    const status = searchParams.get('status') || ''; // '' = all, '0' = resolved, '1' = active
+    const status = searchParams.get('status') || '';
     
     const offset = (page - 1) * limit;
     
-    // สร้าง WHERE conditions
     let whereConditions: string[] = [];
     let queryParams: any[] = [];
     
-    // Filter by status
     if (status !== '') {
       whereConditions.push('status = ?');
       queryParams.push(parseInt(status));
     }
     
-    // Filter by search (name or alarm_content)
     if (search) {
       whereConditions.push('(name LIKE ? OR alarm_content LIKE ?)');
       queryParams.push(`%${search}%`, `%${search}%`);
     }
     
-    // Filter by date range
     if (startDate) {
+      const formattedStart = startDate.replace('T', ' ');
       whereConditions.push('created_at >= ?');
-      queryParams.push(startDate);
+      queryParams.push(formattedStart);
     }
     
     if (endDate) {
+      const formattedEnd = endDate.replace('T', ' ');
       whereConditions.push('created_at <= ?');
-      queryParams.push(endDate);
+      queryParams.push(formattedEnd);
     }
     
-    // สร้าง WHERE clause
     const whereClause = whereConditions.length > 0 
       ? `WHERE ${whereConditions.join(' AND ')}`
       : '';
     
-    // Validate sortBy to prevent SQL injection
     const allowedSortFields = ['id', 'name', 'status', 'created_at', 'ended_at'];
     const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
     const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     
-    // Query ข้อมูล
+    // ✅ แก้ไข: ใช้ CONVERT_TZ เพื่อแปลง UTC เป็นเวลาไทย (+07:00)
     const dataQuery = `
-      SELECT id, name, alarm_content, status, created_at, ended_at
+      SELECT 
+        id, 
+        name, 
+        alarm_content, 
+        status, 
+        CONVERT_TZ(created_at, '+00:00', '+07:00') as created_at,
+        CONVERT_TZ(ended_at, '+00:00', '+07:00') as ended_at
       FROM alarms
       ${whereClause}
       ORDER BY ${validSortBy} ${validSortOrder}
       LIMIT ? OFFSET ?
     `;
     
-    // Query จำนวนทั้งหมด
     const countQuery = `
       SELECT COUNT(*) as total
       FROM alarms
       ${whereClause}
     `;
     
-    // Execute queries
     const [alarms] = await pool.execute<AlarmRow[]>(
       dataQuery, 
       [...queryParams, limit, offset]

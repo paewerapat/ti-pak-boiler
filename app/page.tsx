@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Calendar, Filter, X, Loader2 } from "lucide-react"; // ✅ เพิ่ม Loader2
 import Navbar from "./components/header/Navbar";
+import DateTimePicker from "./components/DateTimePicker";
 
 interface SensorData {
   id: number;
@@ -182,28 +183,34 @@ export default function Dashboard() {
   };
 
   const prepareChartData = () => {
+    // ✅ ฟังก์ชันแปลงเวลาที่ถูกต้อง - แสดงเวลาตรงๆ ไม่บวก timezone
+    const formatLocalDateTime = (
+      dateString: string,
+      format: "full" | "time" | "short"
+    ): string => {
+      // ตัด .000Z ออก และ parse เป็น local time
+      const cleanDateStr = dateString.replace(/\.000Z$/, "").replace("T", " ");
+      const [datePart, timePart] = cleanDateStr.split(" ");
+      const [year, month, day] = datePart.split("-");
+      const [hours, minutes, seconds] = timePart.split(":");
+
+      if (format === "time") {
+        return `${hours}:${minutes}`; // "00:11"
+      } else if (format === "short") {
+        return `${day}/${month} ${hours}:${minutes}`; // "16/11 00:11"
+      } else {
+        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`; // "16/11/2025 00:11:31"
+      }
+    };
+
     // ✅ ใช้ setTimeout เพื่อให้ UI update loading state ก่อน
     setTimeout(() => {
       const data: ChartDataPoint[] = sensors
         .map((sensor) => {
-          const recordDate = new Date(sensor.record_time);
-
           return {
-            time: recordDate.toLocaleTimeString("th-TH", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }),
-            fullTime: recordDate.toLocaleString("th-TH", {
-              hour12: false,
-            }),
-            dateTime: recordDate.toLocaleString("th-TH", {
-              day: "2-digit",
-              month: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }),
+            time: formatLocalDateTime(sensor.record_time, "time"), // "00:11"
+            fullTime: formatLocalDateTime(sensor.record_time, "full"), // "16/11/2025 00:11:31"
+            dateTime: formatLocalDateTime(sensor.record_time, "short"), // "16/11 00:11"
             sv_steam_setpoint: parseFloat(sensor.sv_steam_setpoint),
             pt_steam_pressure: parseFloat(sensor.pt_steam_pressure),
             tc1_stack_temperature: sensor.tc1_stack_temperature,
@@ -428,28 +435,22 @@ export default function Dashboard() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Calendar className="w-4 h-4 inline mr-1" />
                       วันที่เริ่มต้น
                     </label>
-                    <input
-                      type="datetime-local"
+                    <DateTimePicker
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={chartLoading}
+                      onChange={setStartDate}
+                      placeholder="เลือกวันที่เริ่มต้น"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Calendar className="w-4 h-4 inline mr-1" />
                       วันที่สิ้นสุด
                     </label>
-                    <input
-                      type="datetime-local"
+                    <DateTimePicker
                       value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={chartLoading}
+                      onChange={setEndDate}
+                      placeholder="เลือกวันที่สิ้นสุด"
                     />
                   </div>
                 </>
@@ -534,20 +535,24 @@ export default function Dashboard() {
                     margin={{ top: 20, right: 30, left: 20, bottom: 110 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
+                    {/* ✅ แก้ไข: ใช้ dateTime แทน time เพื่อให้มี unique key */}
                     <XAxis
-                      dataKey="time"
+                      dataKey="dateTime" // ✅ เปลี่ยนจาก "time" เป็น "dateTime"
                       stroke="#6b7280"
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      tick={{ fill: "#6b7280", fontSize: 12 }}
+                      tick={{ fill: "#6b7280", fontSize: 11 }} // ✅ ลดขนาดตัวอักษรเล็กลง
                     />
+
                     <YAxis stroke="#6b7280" tick={{ fill: "#6b7280" }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
                       wrapperStyle={{ paddingTop: "20px" }}
                       iconType="line"
                     />
+
                     {selectedMetrics.map((metricKey) => {
                       const metric = metrics.find((m) => m.key === metricKey);
                       return metric ? (
@@ -569,6 +574,7 @@ export default function Dashboard() {
                         />
                       ) : null;
                     })}
+
                     <Brush
                       dataKey="dateTime"
                       height={70}
@@ -649,9 +655,17 @@ export default function Dashboard() {
                           {value.toFixed(2)} {metric.unit}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {new Date(latestData.record_time).toLocaleString(
-                            "th-TH"
-                          )}
+                          {(() => {
+                            const cleanDateStr = latestData.record_time
+                              .replace(/\.000Z$/, "")
+                              .replace("T", " ");
+                            const [datePart, timePart] =
+                              cleanDateStr.split(" ");
+                            const [year, month, day] = datePart.split("-");
+                            const [hours, minutes, seconds] =
+                              timePart.split(":");
+                            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+                          })()}
                         </td>
                       </tr>
                     );

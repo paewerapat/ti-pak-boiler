@@ -1,17 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Navbar from '@/app/components/header/Navbar';
-import { 
-  Search, 
-  RefreshCw, 
+import { useState, useEffect } from "react";
+import Navbar from "@/app/components/header/Navbar";
+import {
+  Search,
+  RefreshCw,
   Calendar,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
   CheckCircle2,
-  Filter
-} from 'lucide-react';
+  Filter,
+} from "lucide-react";
+import DateTimePicker from "../components/DateTimePicker";
 
 interface Alarm {
   id: number;
@@ -32,20 +33,20 @@ interface PaginationInfo {
 export default function AlertsPage() {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
-  
+  const [error, setError] = useState<string>("");
+
   // Filter states
-  const [search, setSearch] = useState<string>('');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>(''); // '' = all, '0' = resolved, '1' = active
+  const [search, setSearch] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>(""); // '' = all, '0' = resolved, '1' = active
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [page, setPage] = useState<number>(1);
-  
+
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>('created_at');
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
-  
+  const [sortBy, setSortBy] = useState<string>("created_at");
+  const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
+
   // Pagination info
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -53,15 +54,15 @@ export default function AlertsPage() {
     total: 0,
     totalPages: 0,
   });
-  
-  const [lastUpdate, setLastUpdate] = useState<string>('');
+
+  const [lastUpdate, setLastUpdate] = useState<string>("");
 
   // Fetch alarms
   const fetchAlarms = async () => {
     try {
       setLoading(true);
-      setError('');
-      
+      setError("");
+
       const params = new URLSearchParams({
         page: page.toString(),
         limit: rowsPerPage.toString(),
@@ -70,27 +71,28 @@ export default function AlertsPage() {
         ...(search && { search }),
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
-        ...(statusFilter !== '' && { status: statusFilter }),
+        ...(statusFilter !== "" && { status: statusFilter }),
       });
-      
+
       const response = await fetch(`/api/alarms?${params}`);
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch alarms');
+        throw new Error("Failed to fetch alarms");
       }
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
+        console.log('Sample alarm data:', result.data[0]);
         setAlarms(result.data);
         setPagination(result.pagination);
-        setLastUpdate(new Date().toLocaleString('th-TH'));
+        setLastUpdate(new Date().toLocaleString("th-TH"));
       } else {
-        throw new Error(result.error || 'Unknown error');
+        throw new Error(result.error || "Unknown error");
       }
     } catch (err: any) {
-      setError(err.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
-      console.error('Error fetching alarms:', err);
+      setError(err.message || "เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      console.error("Error fetching alarms:", err);
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,16 @@ export default function AlertsPage() {
     fetchAlarms();
     const interval = setInterval(fetchAlarms, 30000);
     return () => clearInterval(interval);
-  }, [page, rowsPerPage, sortBy, sortOrder, search, startDate, endDate, statusFilter]);
+  }, [
+    page,
+    rowsPerPage,
+    sortBy,
+    sortOrder,
+    search,
+    startDate,
+    endDate,
+    statusFilter,
+  ]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -113,23 +124,43 @@ export default function AlertsPage() {
   // Handle sorting
   const handleSort = (field: string) => {
     if (sortBy === field) {
-      setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+      setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC");
     } else {
       setSortBy(field);
-      setSortOrder('DESC');
+      setSortOrder("DESC");
     }
   };
 
-  // Format date
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('th-TH', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    if (!dateString) return "-";
+
+    // ✅ รองรับทั้ง format ที่มี T และไม่มี T
+    let cleanDateStr = dateString
+      .replace(/\.000Z$/, "") // ตัด .000Z ออก
+      .replace("T", " ") // แปลง T เป็น space
+      .trim();
+
+    const parts = cleanDateStr.split(" ");
+    if (parts.length !== 2) {
+      console.error("Invalid date format:", dateString);
+      return dateString; // fallback: แสดงค่าเดิม
+    }
+
+    const [datePart, timePart] = parts;
+
+    const dateParts = datePart.split("-");
+    const timeParts = timePart.split(":");
+
+    if (dateParts.length !== 3 || timeParts.length < 2) {
+      console.error("Invalid date/time parts:", dateString);
+      return dateString;
+    }
+
+    const [year, month, day] = dateParts;
+    const [hours, minutes, seconds = "00"] = timeParts;
+
+    // Format เป็นรูปแบบไทย: วัน/เดือน/ปี ชั่วโมง:นาที:วินาที
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
   // Get status badge
@@ -154,7 +185,7 @@ export default function AlertsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -179,7 +210,9 @@ export default function AlertsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Alarms</p>
-                  <p className="text-2xl font-bold text-gray-900">{pagination.total}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {pagination.total}
+                  </p>
                 </div>
               </div>
             </div>
@@ -192,7 +225,7 @@ export default function AlertsPage() {
                 <div>
                   <p className="text-sm text-gray-600">Active Alarms</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {alarms.filter(a => a.status === 1 && !a.ended_at).length}
+                    {alarms.filter((a) => a.status === 1 && !a.ended_at).length}
                   </p>
                 </div>
               </div>
@@ -206,7 +239,7 @@ export default function AlertsPage() {
                 <div>
                   <p className="text-sm text-gray-600">Resolved</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {alarms.filter(a => a.status === 0 || a.ended_at).length}
+                    {alarms.filter((a) => a.status === 0 || a.ended_at).length}
                   </p>
                 </div>
               </div>
@@ -220,7 +253,7 @@ export default function AlertsPage() {
             <Filter className="w-5 h-5 text-gray-500" />
             <h2 className="text-lg font-semibold text-gray-900">ตัวกรอง</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
             <div>
@@ -255,36 +288,26 @@ export default function AlertsPage() {
               </select>
             </div>
 
-            {/* Start Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 วันที่เริ่มต้น
               </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="datetime-local"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <DateTimePicker
+                value={startDate}
+                onChange={setStartDate}
+                placeholder="เลือกวันที่เริ่มต้น"
+              />
             </div>
 
-            {/* End Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 วันที่สิ้นสุด
               </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="datetime-local"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <DateTimePicker
+                value={endDate}
+                onChange={setEndDate}
+                placeholder="เลือกวันที่สิ้นสุด"
+              />
             </div>
           </div>
 
@@ -295,16 +318,18 @@ export default function AlertsPage() {
               disabled={loading}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'กำลังโหลด...' : 'รีเฟรช'}
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+              {loading ? "กำลังโหลด..." : "รีเฟรช"}
             </button>
-            
+
             <button
               onClick={() => {
-                setSearch('');
-                setStartDate('');
-                setEndDate('');
-                setStatusFilter('');
+                setSearch("");
+                setStartDate("");
+                setEndDate("");
+                setStatusFilter("");
                 setPage(1);
               }}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
@@ -338,45 +363,53 @@ export default function AlertsPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th 
-                        onClick={() => handleSort('id')}
+                      <th
+                        onClick={() => handleSort("id")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        ID {sortBy === 'id' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                        ID{" "}
+                        {sortBy === "id" && (sortOrder === "ASC" ? "↑" : "↓")}
                       </th>
-                      <th 
-                        onClick={() => handleSort('name')}
+                      <th
+                        onClick={() => handleSort("name")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Name {sortBy === 'name' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                        Name{" "}
+                        {sortBy === "name" && (sortOrder === "ASC" ? "↑" : "↓")}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Alarm Content
                       </th>
-                      <th 
-                        onClick={() => handleSort('status')}
+                      <th
+                        onClick={() => handleSort("status")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Status {sortBy === 'status' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                        Status{" "}
+                        {sortBy === "status" &&
+                          (sortOrder === "ASC" ? "↑" : "↓")}
                       </th>
-                      <th 
-                        onClick={() => handleSort('created_at')}
+                      <th
+                        onClick={() => handleSort("created_at")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Created At {sortBy === 'created_at' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                        Created At{" "}
+                        {sortBy === "created_at" &&
+                          (sortOrder === "ASC" ? "↑" : "↓")}
                       </th>
-                      <th 
-                        onClick={() => handleSort('ended_at')}
+                      <th
+                        onClick={() => handleSort("ended_at")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Ended At {sortBy === 'ended_at' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                        Ended At{" "}
+                        {sortBy === "ended_at" &&
+                          (sortOrder === "ASC" ? "↑" : "↓")}
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {alarms.map((alarm) => (
-                      <tr 
-                        key={alarm.id} 
+                      <tr
+                        key={alarm.id}
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -395,7 +428,9 @@ export default function AlertsPage() {
                           {formatDateTime(alarm.created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {alarm.ended_at ? formatDateTime(alarm.ended_at) : (
+                          {alarm.ended_at ? (
+                            formatDateTime(alarm.ended_at)
+                          ) : (
                             <span className="text-gray-400 italic">-</span>
                           )}
                         </td>
@@ -408,9 +443,7 @@ export default function AlertsPage() {
               {/* Pagination */}
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <label className="text-sm text-gray-700">
-                    แสดงผล:
-                  </label>
+                  <label className="text-sm text-gray-700">แสดงผล:</label>
                   <select
                     value={rowsPerPage}
                     onChange={(e) => setRowsPerPage(Number(e.target.value))}
@@ -435,11 +468,11 @@ export default function AlertsPage() {
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  
+
                   <span className="px-4 py-2 text-sm text-gray-700">
                     หน้า {pagination.page} / {pagination.totalPages}
                   </span>
-                  
+
                   <button
                     onClick={() => setPage(page + 1)}
                     disabled={page >= pagination.totalPages}

@@ -47,13 +47,13 @@ export default function ReportPage() {
     const now = new Date();
     const thaiOffset = 7 * 60 * 60 * 1000;
     const thaiTime = new Date(now.getTime() + thaiOffset);
-    
+
     const year = thaiTime.getUTCFullYear();
-    const month = String(thaiTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(thaiTime.getUTCDate()).padStart(2, '0');
-    const hours = String(thaiTime.getUTCHours()).padStart(2, '0');
-    const minutes = String(thaiTime.getUTCMinutes()).padStart(2, '0');
-    
+    const month = String(thaiTime.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(thaiTime.getUTCDate()).padStart(2, "0");
+    const hours = String(thaiTime.getUTCHours()).padStart(2, "0");
+    const minutes = String(thaiTime.getUTCMinutes()).padStart(2, "0");
+
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -62,7 +62,6 @@ export default function ReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
-  // ✅ ลบ state showFilterExport
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
@@ -258,14 +257,12 @@ export default function ReportPage() {
   };
 
   const formatDateTime = (dateString: string): string => {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
+    // ✅ ตัด .000Z ออกและ parse ตรงๆ ไม่ให้ browser แปลง timezone
+    const cleanDateStr = dateString.replace(/\.000Z$/, "").replace("T", " ");
+    const [datePart, timePart] = cleanDateStr.split(" ");
+    const [year, month, day] = datePart.split("-");
+    const [hours, minutes, seconds] = timePart.split(":");
+
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
@@ -447,7 +444,8 @@ export default function ReportPage() {
             <div className="border-t border-gray-200 pt-4 mt-4">
               <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                ส่งออกข้อมูล {isFiltered ? "(ตามที่กรอง)" : "(ชุดข้อมูลทั้งหมด)"}
+                ส่งออกข้อมูล{" "}
+                {isFiltered ? "(ตามที่กรอง)" : "(ชุดข้อมูลทั้งหมด)"}
               </h3>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -515,19 +513,25 @@ export default function ReportPage() {
           {sensors.length > 0 && (
             <>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">sv_steam_setpoint</div>
+                <div className="text-xs sm:text-sm text-gray-500">
+                  sv_steam_setpoint
+                </div>
                 <div className="text-lg sm:text-2xl font-bold text-blue-600">
                   {formatNumber(sensors[0].sv_steam_setpoint)}
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">pt_steam_pressure</div>
+                <div className="text-xs sm:text-sm text-gray-500">
+                  pt_steam_pressure
+                </div>
                 <div className="text-lg sm:text-2xl font-bold text-green-600">
                   {formatNumber(sensors[0].pt_steam_pressure)}
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">tc1_stack_temperature</div>
+                <div className="text-xs sm:text-sm text-gray-500">
+                  tc1_stack_temperature
+                </div>
                 <div className="text-lg sm:text-2xl font-bold text-orange-600">
                   {sensors[0].tc1_stack_temperature}°C
                 </div>
@@ -619,7 +623,13 @@ export default function ReportPage() {
                         {formatNumber(sensor.pt_steam_pressure)}
                       </td>
                       <td className="px-3 sm:px-4 py-3 text-sm text-right font-medium">
-                        <span className={getStatusColor(String(sensor.tc1_stack_temperature), 35, 43)}>
+                        <span
+                          className={getStatusColor(
+                            String(sensor.tc1_stack_temperature),
+                            35,
+                            43
+                          )}
+                        >
                           {sensor.tc1_stack_temperature}
                         </span>
                       </td>
