@@ -21,7 +21,7 @@
 /build
 
 # Mockup file
-/init/*
+/init/
 
 # misc
 .DS_Store
