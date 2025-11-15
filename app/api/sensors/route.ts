@@ -19,22 +19,42 @@ interface CountRow extends RowDataPacket {
   total: number;
 }
 
+// ✅ แปลงเวลาไทยเป็น UTC สำหรับ query database
+function convertThaiToUTC(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  // สร้าง Date object จาก local time (เวลาไทย)
+  const localDate = new Date(dateStr.replace('T', ' '));
+  
+  // แปลงเป็น UTC string สำหรับ MySQL
+  const year = localDate.getUTCFullYear();
+  const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(localDate.getUTCDate()).padStart(2, '0');
+  const hours = String(localDate.getUTCHours()).padStart(2, '0');
+  const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
     
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '100');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const sortOrder = searchParams.get('sortOrder') || 'desc'; // เพิ่มบรรทัดนี้
+    const startDateRaw = searchParams.get('startDate');
+    const endDateRaw = searchParams.get('endDate');
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const noLimit = searchParams.get('noLimit') === 'true'; // ✅ เพิ่มพารามิเตอร์นี้
     
     const offset = (page - 1) * pageSize;
     
-    // Validate sortOrder
-    const validSortOrder = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC'; // เพิ่มบรรทัดนี้
+    const validSortOrder = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
     
-    // สร้าง WHERE clause สำหรับ date filter
+    const startDate = startDateRaw ? convertThaiToUTC(startDateRaw) : null;
+    const endDate = endDateRaw ? convertThaiToUTC(endDateRaw) : null;
+    
     let whereClause = '';
     const params: any[] = [];
     
@@ -59,15 +79,30 @@ export async function GET(request: Request): Promise<NextResponse> {
     const countResult = await query(countSql, params) as CountRow[];
     const totalItems = countResult[0].total;
     
-    // Data query - แก้บรรทัดนี้เพื่อใช้ sortOrder
-    const dataSql = `
-      SELECT * FROM sensors 
-      ${whereClause}
-      ORDER BY record_time ${validSortOrder}
-      LIMIT ? OFFSET ?
-    `;
+    // ✅ Data query - เพิ่มเงื่อนไข noLimit
+    let dataSql;
+    let queryParams;
     
-    const results = await query(dataSql, [...params, pageSize, offset]) as SensorRow[];
+    if (noLimit) {
+      // ดึงทั้งหมดโดยไม่ limit (สำหรับ dashboard chart)
+      dataSql = `
+        SELECT * FROM sensors 
+        ${whereClause}
+        ORDER BY record_time ${validSortOrder}
+      `;
+      queryParams = params;
+    } else {
+      // ดึงแบบมี pagination (สำหรับตาราง)
+      dataSql = `
+        SELECT * FROM sensors 
+        ${whereClause}
+        ORDER BY record_time ${validSortOrder}
+        LIMIT ? OFFSET ?
+      `;
+      queryParams = [...params, pageSize, offset];
+    }
+    
+    const results = await query(dataSql, queryParams) as SensorRow[];
     
     const totalPages = Math.ceil(totalItems / pageSize);
     const hasNextPage = page < totalPages;

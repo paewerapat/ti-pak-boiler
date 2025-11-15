@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { RowDataPacket } from 'mysql2/promise';
+import * as XLSX from 'xlsx';
 
 interface SensorRow extends RowDataPacket {
   id: number;
@@ -21,11 +22,10 @@ export async function GET(request: Request): Promise<NextResponse> {
     const format = searchParams.get('format') || 'csv';
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const metricsParam = searchParams.get('metrics'); // รับ selectedMetrics จาก query
+    const metricsParam = searchParams.get('metrics');
     
     const selectedMetrics = metricsParam ? metricsParam.split(',') : [];
     
-    // สร้าง WHERE clause สำหรับ date filter
     let whereClause = '';
     const params: any[] = [];
     
@@ -45,7 +45,6 @@ export async function GET(request: Request): Promise<NextResponse> {
       whereClause = 'WHERE ' + conditions.join(' AND ');
     }
     
-    // Query ข้อมูล (ทั้งหมดหรือตาม filter)
     const sql = `
       SELECT * FROM sensors 
       ${whereClause}
@@ -54,7 +53,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     
     const results = await query(sql, params) as SensorRow[];
     
-    // สร้าง headers และ columns ตาม selectedMetrics
     const allColumns = ['sv_steam_setpoint', 'pt_steam_pressure', 'tc1_stack_temperature', 'mt1_oil_supply_meter', 'mt2_boiler_feed_meter', 'mt3_soft_water_meter', 'mt4_condensate_meter', 'opt_oil_pressure'];
     const columnsToExport = selectedMetrics.length > 0 
       ? selectedMetrics.filter(m => allColumns.includes(m)) 
@@ -62,7 +60,6 @@ export async function GET(request: Request): Promise<NextResponse> {
     
     if (format === 'csv') {
       const BOM = '\uFEFF';
-      // Record Time อยู่คอลัมน์แรก แทนที่ ID
       const headers = ['Record Time', ...columnsToExport];
       const csvRows = [headers.join(',')];
       
@@ -86,47 +83,33 @@ export async function GET(request: Request): Promise<NextResponse> {
     } 
     
     if (format === 'excel') {
-      // Record Time อยู่คอลัมน์แรก แทนที่ ID
-      const excelRows = results.map(row => {
-        return `
-          <Row>
-            <Cell><Data ss:Type="String">${new Date(row.record_time).toLocaleString('th-TH', { hour12: false })}</Data></Cell>
-            ${columnsToExport.map(col => 
-              `<Cell><Data ss:Type="Number">${row[col as keyof SensorRow]}</Data></Cell>`
-            ).join('')}
-          </Row>`;
-      }).join('');
+      // สร้างข้อมูลสำหรับ Excel
+      const excelData = results.map(row => {
+        const rowData: any = {
+          'Record Time': new Date(row.record_time).toLocaleString('th-TH', { hour12: false })
+        };
+        
+        columnsToExport.forEach(col => {
+          rowData[col] = row[col as keyof SensorRow];
+        });
+        
+        return rowData;
+      });
       
-      const excelContent = `<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
- <Styles>
-  <Style ss:ID="Header">
-   <Font ss:Bold="1"/>
-   <Interior ss:Color="#4472C4" ss:Pattern="Solid"/>
-   <Font ss:Color="#FFFFFF"/>
-  </Style>
- </Styles>
- <Worksheet ss:Name="Sensors Report">
-  <Table>
-   <Row ss:StyleID="Header">
-    <Cell><Data ss:Type="String">Record Time</Data></Cell>
-    ${columnsToExport.map(col => 
-      `<Cell><Data ss:Type="String">${col}</Data></Cell>`
-    ).join('')}
-   </Row>
-   ${excelRows}
-  </Table>
- </Worksheet>
-</Workbook>`;
-
+      // สร้าง workbook และ worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Sensors Report');
+      
+      // แปลงเป็น buffer
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
       const dateRangeStr = startDate || endDate ? `_filtered` : '';
       
-      return new NextResponse(excelContent, {
+      return new NextResponse(excelBuffer, {
         headers: {
-          'Content-Type': 'application/vnd.ms-excel',
-          'Content-Disposition': `attachment; filename="sensors_report${dateRangeStr}_${new Date().toISOString().split('T')[0]}.xls"`,
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="sensors_report${dateRangeStr}_${new Date().toISOString().split('T')[0]}.xlsx"`,
         },
       });
     }

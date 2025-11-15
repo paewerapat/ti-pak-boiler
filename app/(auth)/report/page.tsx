@@ -43,7 +43,6 @@ interface PaginationResponse {
 }
 
 export default function ReportPage() {
-  // ฟังก์ชันสำหรับแปลงเวลาปัจจุบันเป็น datetime-local format (เวลาไทย)
   const getThaiDateTimeLocal = (): string => {
     const now = new Date();
     const thaiOffset = 7 * 60 * 60 * 1000;
@@ -63,7 +62,7 @@ export default function ReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
-  const [showFilterExport, setShowFilterExport] = useState<boolean>(false);
+  // ✅ ลบ state showFilterExport
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(50);
@@ -259,7 +258,6 @@ export default function ReportPage() {
   };
 
   const formatDateTime = (dateString: string): string => {
-    // ข้อมูลจาก DB เป็น GMT+7 อยู่แล้ว แค่ format ให้สวย
     const date = new Date(dateString);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -360,176 +358,143 @@ export default function ReportPage() {
           </div>
         </div>
 
+        {/* ✅ ลบปุ่ม toggle และแสดง Filter ตลอดเวลา */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              กรองและส่งออกข้อมูล
-            </h2>
-            <button
-              onClick={() => setShowFilterExport(!showFilterExport)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              {showFilterExport ? "ซ่อน" : "แสดง"}
-            </button>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-4">
+            <Filter className="w-5 h-5" />
+            กรองและส่งออกข้อมูล
+          </h2>
 
-          {showFilterExport && (
-            <div className="space-y-4">
-              <div className="pb-4 border-b border-gray-200">
+          <div className="space-y-4">
+            <div className="pb-4 border-b border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <ArrowUpDown className="w-4 h-4 inline mr-1" />
+                เรียงลำดับตามเวลา
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSortChange("desc")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                    sortOrder === "desc"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  ใหม่ก่อน (DESC)
+                </button>
+                <button
+                  onClick={() => handleSortChange("asc")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                    sortOrder === "asc"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  เก่าก่อน (ASC)
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <ArrowUpDown className="w-4 h-4 inline mr-1" />
-                  เรียงลำดับตามเวลา
+                  <Calendar className="w-4 h-4 inline mr-1" />
+                  วันที่เริ่มต้น (เวลาไทย)
+                </label>
+                <input
+                  type="datetime-local"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Calendar className="w-4 h-4 inline mr-1" />
+                  วันที่สิ้นสุด (เวลาไทย)
                 </label>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleSortChange("desc")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                      sortOrder === "desc"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    ใหม่ก่อน (DESC)
-                  </button>
-                  <button
-                    onClick={() => handleSortChange("asc")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                      sortOrder === "asc"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    เก่าก่อน (ASC)
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar className="w-4 h-4 inline mr-1" />
-                    วันที่เริ่มต้น (เวลาไทย)
-                  </label>
                   <input
                     type="datetime-local"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar className="w-4 h-4 inline mr-1" />
-                    วันที่สิ้นสุด (เวลาไทย)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="datetime-local"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
               </div>
+            </div>
 
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleFilter}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Filter className="w-4 h-4" />
+                กรองข้อมูล
+              </button>
+              {isFiltered && (
+                <button
+                  onClick={handleClearFilter}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  ล้างตัวกรอง
+                </button>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                ส่งออกข้อมูล {isFiltered ? "(ตามที่กรอง)" : "(ชุดข้อมูลทั้งหมด)"}
+              </h3>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={handleFilter}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={exportToCSV}
+                  disabled={exportLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Filter className="w-4 h-4" />
-                  กรองข้อมูล
+                  <FileText className="w-4 h-4" />
+                  {exportLoading ? "กำลังส่งออก..." : "ส่งออกเป็น CSV"}
                 </button>
-                {isFiltered && (
-                  <button
-                    onClick={handleClearFilter}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                    ล้างตัวกรอง
-                  </button>
+                <button
+                  onClick={exportToExcel}
+                  disabled={exportLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  {exportLoading ? "กำลังส่งออก..." : "ส่งออกเป็น Excel"}
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <p className="text-xs font-medium text-gray-600 mb-2">
+                  Columns ที่จะส่งออก:
+                </p>
+                {selectedMetrics.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMetrics.map((metric) => (
+                      <span
+                        key={metric}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                      >
+                        {metric}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 italic">
+                    ไม่มีการเลือก columns (จะส่งออกทั้งหมด)
+                  </p>
                 )}
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  ส่งออกข้อมูล {isFiltered ? "(ตามที่กรอง)" : "(ชุดข้อมูลทั้งหมด)"}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={exportToCSV}
-                    disabled={exportLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <FileText className="w-4 h-4" />
-                    {exportLoading ? "กำลังส่งออก..." : "ส่งออกเป็น CSV"}
-                  </button>
-                  <button
-                    onClick={exportToExcel}
-                    disabled={exportLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    {exportLoading ? "กำลังส่งออก..." : "ส่งออกเป็น Excel"}
-                  </button>
-                </div>
-
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-gray-600 mb-2">
-                    Columns ที่จะส่งออก:
-                  </p>
-                  {selectedMetrics.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedMetrics.map((metric) => (
-                        <span
-                          key={metric}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          {metric}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-500 italic">
-                      ไม่มีการเลือก columns (จะส่งออกทั้งหมด)
-                    </p>
-                  )}
-                </div>
-
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 จัดการ columns ได้ที่หน้า Dashboard
-                </p>
-              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 จัดการ columns ได้ที่หน้า Dashboard
+              </p>
             </div>
-          )}
-
-          {isFiltered && !showFilterExport && (
-            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
-              <Filter className="w-4 h-4" />
-              <span>
-                กำลังกรองข้อมูล:{" "}
-                {startDate
-                  ? new Date(startDate).toLocaleString("th-TH", {
-                      hour12: false,
-                    })
-                  : "ไม่ระบุ"}{" "}
-                ถึง{" "}
-                {endDate
-                  ? new Date(endDate).toLocaleString("th-TH", { hour12: false })
-                  : "ไม่ระบุ"}
-              </span>
-              <button
-                onClick={handleClearFilter}
-                className="ml-auto text-blue-700 hover:text-blue-800 font-medium"
-              >
-                ล้าง
-              </button>
-            </div>
-          )}
+          </div>
         </div>
 
         {error && (
