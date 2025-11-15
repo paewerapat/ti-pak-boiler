@@ -20,6 +20,9 @@
 # production
 /build
 
+# Mockup file
+/init/*
+
 # misc
 .DS_Store
 *.pem
