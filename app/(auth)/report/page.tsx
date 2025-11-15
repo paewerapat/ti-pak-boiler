@@ -584,16 +584,16 @@ export default function ReportPage() {
                       Stack Temperature
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter 1
+                      MT1 OIL SUPPLY
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter 2
+                      MT2 BOILER FEED
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter 3
+                      MT3 SOFT WATER
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Meter4
+                      MT4 CONDENSATE
                     </th>
                     <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Oil Pressure
