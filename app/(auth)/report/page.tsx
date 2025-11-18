@@ -143,31 +143,6 @@ export default function ReportPage() {
     }
   };
 
-  useEffect(() => {
-    fetchSensors(1, pageSize);
-
-    const loadSelectedMetrics = () => {
-      const selectedMetricsStr = localStorage.getItem("selectedMetrics");
-      if (selectedMetricsStr) {
-        try {
-          const metrics = JSON.parse(selectedMetricsStr);
-          setSelectedMetrics(metrics);
-        } catch (e) {
-          setSelectedMetrics([]);
-        }
-      }
-    };
-
-    loadSelectedMetrics();
-
-    const handleStorageChange = () => {
-      loadSelectedMetrics();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [pageSize]);
-
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
