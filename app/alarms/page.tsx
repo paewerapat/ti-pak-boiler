@@ -11,6 +11,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Filter,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 import DateTimePicker from "../components/DateTimePicker";
 
@@ -46,6 +48,72 @@ export default function AlertsPage() {
   // Sorting states
   const [sortBy, setSortBy] = useState<string>("created_at");
   const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
+
+  // เพิ่ม state สำหรับ export loading
+  const [exportLoading, setExportLoading] = useState<boolean>(false);
+
+  // เพิ่มฟังก์ชัน export
+  const exportToCSV = async () => {
+    try {
+      setExportLoading(true);
+
+      let url = `/api/alarms/export?format=csv`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+      if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+      if (statusFilter !== "") url += `&status=${statusFilter}`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to export data");
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `alarms_export_${
+        new Date().toISOString().split("T")[0]
+      }.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError("Failed to export CSV");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportToExcel = async () => {
+    try {
+      setExportLoading(true);
+
+      let url = `/api/alarms/export?format=excel`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+      if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+      if (statusFilter !== "") url += `&status=${statusFilter}`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to export data");
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `alarms_export_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError("Failed to export Excel");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   // Pagination info
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -303,6 +371,7 @@ export default function AlertsPage() {
           </div>
 
           {/* Action Buttons */}
+          {/* Action Buttons */}
           <div className="flex items-center gap-3 mt-4">
             <button
               onClick={fetchAlarms}
@@ -327,6 +396,27 @@ export default function AlertsPage() {
             >
               ล้างตัวกรอง
             </button>
+
+            {/* ✅ เพิ่มส่วนนี้ */}
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={exportToCSV}
+                disabled={exportLoading || alarms.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                {exportLoading ? "กำลังส่งออก..." : "Export CSV"}
+              </button>
+
+              <button
+                onClick={exportToExcel}
+                disabled={exportLoading || alarms.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                {exportLoading ? "กำลังส่งออก..." : "Export Excel"}
+              </button>
+            </div>
           </div>
         </div>
 

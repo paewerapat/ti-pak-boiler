@@ -260,17 +260,17 @@ export default function Dashboard() {
         size = 360;
         break;
       case "24hours":
-        // ✅ แก้: ย้อนหลัง 24 ชั่วโมงจากเวลาปัจจุบัน (ไม่ใช่ 00:00:00)
+        // ย้อนหลัง 24 ชั่วโมงจากเวลาปัจจุบัน
         start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         size = 1440;
         break;
       case "1week":
-        // ✅ แก้: ย้อนหลัง 7 วันจากเวลาปัจจุบัน (ไม่ใช่ 00:00:00)
+        // ย้อนหลัง 7 วันจากเวลาปัจจุบัน
         start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         size = 2016;
         break;
       case "1month":
-        // ✅ แก้: ย้อนหลัง 30 วันจากเวลาปัจจุบัน (ไม่ใช่ 00:00:00)
+        // ย้อนหลัง 30 วันจากเวลาปัจจุบัน
         start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         size = 3000;
         break;
@@ -281,20 +281,30 @@ export default function Dashboard() {
         size = 360;
     }
 
+    // ✅ ลบ 7 ชั่วโมงออกก่อนส่งค่าไปให้ API (เพราะ API จะบวกกลับเข้าไป +7)
+    const adjustedStart = new Date(start.getTime() - 7 * 60 * 60 * 1000);
+    const adjustedEnd = new Date(now.getTime() - 7 * 60 * 60 * 1000);
+
     setTimeRange(range);
-    setStartDate(formatDateTime(start));
-    setEndDate(formatDateTime(now));
+    setStartDate(formatDateTime(adjustedStart));
+    setEndDate(formatDateTime(adjustedEnd));
     setPageSize(size);
 
     console.log("Time range updated:", {
       range,
-      start: formatDateTime(start),
-      end: formatDateTime(now),
+      start: formatDateTime(adjustedStart),
+      end: formatDateTime(adjustedEnd),
       size,
+      originalStart: formatDateTime(start),
+      originalEnd: formatDateTime(now),
     });
 
     setChartLoading(true);
-    fetchSensors(formatDateTime(start), formatDateTime(now), size);
+    fetchSensors(
+      formatDateTime(adjustedStart),
+      formatDateTime(adjustedEnd),
+      size
+    );
   };
 
   const handleTimeRangeChange = (range: string) => {

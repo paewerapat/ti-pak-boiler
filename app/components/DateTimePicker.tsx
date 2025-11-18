@@ -17,19 +17,23 @@ export default function DateTimePicker({
   onChange,
   placeholder,
 }: DateTimePickerProps) {
-  const dateValue = value ? new Date(value) : null;
+  // ✅ ตอน parse value กลับมาแสดง ต้องบวก +7 ชั่วโมง (เพราะเราลบไปตอนส่ง)
+  const dateValue = value 
+    ? new Date(new Date(value).getTime() + 7 * 60 * 60 * 1000) 
+    : null;
 
-  // DateTimePicker.tsx
   const handleChange = (date: Date | null) => {
     if (date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const hours = String(date.getHours()).padStart(2, "0");
-      const minutes = String(date.getMinutes()).padStart(2, "0");
+      // ✅ ลบ 7 ชั่วโมงก่อนส่งค่า (เพราะ API จะบวกกลับเข้าไป +7)
+      const adjustedDate = new Date(date.getTime() - 7 * 60 * 60 * 1000);
+      
+      const year = adjustedDate.getFullYear();
+      const month = String(adjustedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(adjustedDate.getDate()).padStart(2, "0");
+      const hours = String(adjustedDate.getHours()).padStart(2, "0");
+      const minutes = String(adjustedDate.getMinutes()).padStart(2, "0");
       const seconds = "00";
 
-      // ✅ ส่งเวลาไทยตรงๆ ไม่ต้องแปลง
       const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
       onChange(formatted);
     } else {
