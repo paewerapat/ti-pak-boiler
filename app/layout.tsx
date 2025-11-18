@@ -3,8 +3,8 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "Paisan Steam Boiler Co., Ltd.",
-  description: "Paisan Steam Boiler Co., Ltd.",
+  title: "S.Paisan Steam Boiler Co., Ltd.",
+  description: "S.Paisan Steam Boiler Co., Ltd.",
 };
 
 export default function RootLayout({

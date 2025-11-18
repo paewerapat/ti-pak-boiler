@@ -16,6 +16,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import Navbar from "@/app/components/header/Navbar";
+import DateTimePicker from "@/app/components/DateTimePicker";
 
 interface SensorData {
   id: number;
@@ -42,21 +43,58 @@ interface PaginationResponse {
   };
 }
 
+const metrics = [
+  {
+    key: "sv_steam_setpoint",
+    label: "Steam Setpoint",
+    color: "#3b82f6",
+    unit: "",
+  },
+  {
+    key: "pt_steam_pressure",
+    label: "Steam Pressure",
+    color: "#10b981",
+    unit: "",
+  },
+  {
+    key: "tc1_stack_temperature",
+    label: "Stack Temperature",
+    color: "#f59e0b",
+    unit: "°C",
+  },
+  {
+    key: "mt1_oil_supply_meter",
+    label: "MT1 OIL SUPPLY",
+    color: "#8b5cf6",
+    unit: "",
+  },
+  {
+    key: "mt2_boiler_feed_meter",
+    label: "MT2 BOILER FEED",
+    color: "#ec4899",
+    unit: "",
+  },
+  {
+    key: "mt3_soft_water_meter",
+    label: "MT3 SOFT WATER",
+    color: "#06b6d4",
+    unit: "",
+  },
+  {
+    key: "mt4_condensate_meter",
+    label: "MT4 CONDENSATE",
+    color: "#f43f5e",
+    unit: "",
+  },
+  {
+    key: "opt_oil_pressure",
+    label: "Oil Pressure",
+    color: "#84cc16",
+    unit: "",
+  },
+];
+
 export default function ReportPage() {
-  const getThaiDateTimeLocal = (): string => {
-    const now = new Date();
-    const thaiOffset = 7 * 60 * 60 * 1000;
-    const thaiTime = new Date(now.getTime() + thaiOffset);
-
-    const year = thaiTime.getUTCFullYear();
-    const month = String(thaiTime.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(thaiTime.getUTCDate()).padStart(2, "0");
-    const hours = String(thaiTime.getUTCHours()).padStart(2, "0");
-    const minutes = String(thaiTime.getUTCMinutes()).padStart(2, "0");
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
   const [sensors, setSensors] = useState<SensorData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +107,7 @@ export default function ReportPage() {
   const [totalItems, setTotalItems] = useState<number>(0);
 
   const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>(getThaiDateTimeLocal());
+  const [endDate, setEndDate] = useState<string>("");
   const [isFiltered, setIsFiltered] = useState<boolean>(false);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
@@ -160,7 +198,7 @@ export default function ReportPage() {
 
   const handleClearFilter = () => {
     setStartDate("");
-    setEndDate(getThaiDateTimeLocal());
+    setEndDate(""); // ✅ เปลี่ยนเป็น empty string
     setIsFiltered(false);
     setCurrentPage(1);
     fetchSensors(1, pageSize, undefined, undefined, sortOrder);
@@ -257,11 +295,17 @@ export default function ReportPage() {
   };
 
   const formatDateTime = (dateString: string): string => {
-    // ✅ ตัด .000Z ออกและ parse ตรงๆ ไม่ให้ browser แปลง timezone
-    const cleanDateStr = dateString.replace(/\.000Z$/, "").replace("T", " ");
-    const [datePart, timePart] = cleanDateStr.split(" ");
-    const [year, month, day] = datePart.split("-");
-    const [hours, minutes, seconds] = timePart.split(":");
+    if (!dateString) return "-";
+
+    // แปลง Date object โดยใช้ UTC methods
+    const date = new Date(dateString);
+
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    const hours = String(date.getUTCHours()).padStart(2, "0");
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+    const seconds = String(date.getUTCSeconds()).padStart(2, "0");
 
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   };
@@ -306,6 +350,63 @@ export default function ReportPage() {
     return pages;
   };
 
+  const toggleMetric = (metricKey: string) => {
+    const newSelectedMetrics = selectedMetrics.includes(metricKey)
+      ? selectedMetrics.filter((m) => m !== metricKey)
+      : [...selectedMetrics, metricKey];
+
+    setSelectedMetrics(newSelectedMetrics);
+    // บันทึกไปที่ localStorage ทันทีเพื่อ sync กับหน้า Dashboard
+    localStorage.setItem("selectedMetrics", JSON.stringify(newSelectedMetrics));
+
+    // ✅ Trigger custom event เพื่อ sync ภายในหน้าเดียวกัน
+    window.dispatchEvent(new Event("metricsChanged"));
+  };
+
+  useEffect(() => {
+    fetchSensors(1, pageSize);
+
+    // Load จาก localStorage ตอนเริ่มต้น
+    const loadSelectedMetrics = () => {
+      const selectedMetricsStr = localStorage.getItem("selectedMetrics");
+      if (selectedMetricsStr) {
+        try {
+          const metrics = JSON.parse(selectedMetricsStr);
+          setSelectedMetrics(metrics);
+        } catch (e) {
+          console.error("Failed to parse selectedMetrics:", e);
+        }
+      }
+    };
+
+    loadSelectedMetrics();
+
+    // ✅ Listen storage event จากหน้าอื่น
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "selectedMetrics" && e.newValue) {
+        try {
+          const metrics = JSON.parse(e.newValue);
+          setSelectedMetrics(metrics);
+        } catch (error) {
+          console.error("Failed to parse storage event:", error);
+        }
+      }
+    };
+
+    // ✅ Listen custom event สำหรับ sync ภายในหน้าเดียวกัน
+    const handleMetricsChanged = () => {
+      loadSelectedMetrics();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("metricsChanged", handleMetricsChanged);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("metricsChanged", handleMetricsChanged);
+    };
+  }, [pageSize]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Navbar />
@@ -314,9 +415,12 @@ export default function ReportPage() {
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-                Sensors Report
+              <h1 className="text-3xl font-bold text-blue-800">
+                SPB040HH Boiler 4 T/H 16 Bar
               </h1>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                Sensors Report
+              </h2>
               <p className="text-sm text-gray-500 mt-1">
                 อัพเดทล่าสุด: {lastUpdate || "-"}
               </p>
@@ -355,6 +459,48 @@ export default function ReportPage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4">
+            <div className="text-xs sm:text-sm text-gray-500">ทั้งหมด</div>
+            <div className="text-lg sm:text-2xl font-bold text-purple-600">
+              {totalItems.toLocaleString()}
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 sm:p-4 col-span-2 sm:col-span-3 lg:col-span-1">
+            <div className="text-xs sm:text-sm text-gray-500">สถานะ</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
+              ● ออนไลน์
+            </div>
+          </div>
+          {sensors.length > 0 && (
+            <>
+              {metrics.map((metric) => {
+                const value = sensors[0]
+                  ? parseFloat(
+                      sensors[0][metric.key as keyof SensorData] as string
+                    )
+                  : 0;
+                return (
+                  <div
+                    key={metric.key}
+                    className="bg-white rounded-lg shadow p-3 sm:p-4"
+                  >
+                    <div className="text-xs sm:text-sm text-gray-500 mb-1">
+                      {metric.label}
+                    </div>
+                    <div
+                      className="text-lg sm:text-2xl font-bold"
+                      style={{ color: metric.color }}
+                    >
+                      {value.toFixed(2)} {metric.unit}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+
         {/* ✅ ลบปุ่ม toggle และแสดง Filter ตลอดเวลา */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-4">
@@ -363,82 +509,116 @@ export default function ReportPage() {
           </h2>
 
           <div className="space-y-4">
-            <div className="pb-4 border-b border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <ArrowUpDown className="w-4 h-4 inline mr-1" />
-                เรียงลำดับตามเวลา
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleSortChange("desc")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                    sortOrder === "desc"
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  ใหม่ก่อน (DESC)
-                </button>
-                <button
-                  onClick={() => handleSortChange("asc")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                    sortOrder === "asc"
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  เก่าก่อน (ASC)
-                </button>
-              </div>
-            </div>
+            <div className="space-y-4">
+              {/* ✅ ใช้ grid responsive - desktop 4 คอลัมน์, tablet 2 คอลัมน์, mobile 1 คอลัมน์ */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                {/* Sort Buttons */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <ArrowUpDown className="w-4 h-4 inline mr-1" />
+                    เรียงลำดับตามเวลา
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSortChange("desc")}
+                      className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg border transition-colors text-sm ${
+                        sortOrder === "desc"
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      ใหม่ก่อน
+                    </button>
+                    <button
+                      onClick={() => handleSortChange("asc")}
+                      className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg border transition-colors text-sm ${
+                        sortOrder === "asc"
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      เก่าก่อน
+                    </button>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Calendar className="w-4 h-4 inline mr-1" />
-                  วันที่เริ่มต้น (เวลาไทย)
-                </label>
-                <input
-                  type="datetime-local"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Calendar className="w-4 h-4 inline mr-1" />
-                  วันที่สิ้นสุด (เวลาไทย)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="datetime-local"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {/* Start Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    วันที่เริ่มต้น
+                  </label>
+                  <DateTimePicker
+                    value={startDate}
+                    onChange={setStartDate}
+                    placeholder="เลือกวันที่เริ่มต้น"
                   />
+                </div>
+
+                {/* End Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    วันที่สิ้นสุด
+                  </label>
+                  <DateTimePicker
+                    value={endDate}
+                    onChange={setEndDate}
+                    placeholder="เลือกวันที่สิ้นสุด"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleFilter}
+                      disabled={loading}
+                      className="max-w-full lg:max-w-[50%] flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Filter className="w-4 h-4" />
+                      <span className="hidden sm:inline">กรอง</span>
+                    </button>
+                    {isFiltered && (
+                      <button
+                        onClick={handleClearFilter}
+                        className="max-w-full lg:max-w-[50%] flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        <span className="hidden sm:inline">ล้าง</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={handleFilter}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Filter className="w-4 h-4" />
-                กรองข้อมูล
-              </button>
-              {isFiltered && (
-                <button
-                  onClick={handleClearFilter}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                  ล้างตัวกรอง
-                </button>
-              )}
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                เลือก Metrics ที่ต้องการแสดง (สำหรับ Export)
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {metrics.map((metric) => (
+                  <button
+                    key={metric.key}
+                    onClick={() => toggleMetric(metric.key)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      selectedMetrics.includes(metric.key)
+                        ? "bg-gray-800 text-white shadow-lg"
+                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    }`}
+                    style={
+                      selectedMetrics.includes(metric.key)
+                        ? { borderLeft: `4px solid ${metric.color}` }
+                        : {}
+                    }
+                  >
+                    {metric.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 การเลือก Metrics จะ sync กับหน้า Dashboard และใช้สำหรับการ
+                Export ข้อมูล
+              </p>
             </div>
 
             <div className="border-t border-gray-200 pt-4 mt-4">
@@ -465,32 +645,6 @@ export default function ReportPage() {
                   {exportLoading ? "กำลังส่งออก..." : "ส่งออกเป็น Excel"}
                 </button>
               </div>
-
-              <div className="mt-3">
-                <p className="text-xs font-medium text-gray-600 mb-2">
-                  Columns ที่จะส่งออก:
-                </p>
-                {selectedMetrics.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedMetrics.map((metric) => (
-                      <span
-                        key={metric}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                      >
-                        {metric}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500 italic">
-                    ไม่มีการเลือก columns (จะส่งออกทั้งหมด)
-                  </p>
-                )}
-              </div>
-
-              <p className="text-xs text-gray-500 mt-2">
-                💡 จัดการ columns ได้ที่หน้า Dashboard
-              </p>
             </div>
           </div>
         </div>
@@ -508,49 +662,6 @@ export default function ReportPage() {
             </button>
           </div>
         )}
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-          {sensors.length > 0 && (
-            <>
-              <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">
-                  sv_steam_setpoint
-                </div>
-                <div className="text-lg sm:text-2xl font-bold text-blue-600">
-                  {formatNumber(sensors[0].sv_steam_setpoint)}
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">
-                  pt_steam_pressure
-                </div>
-                <div className="text-lg sm:text-2xl font-bold text-green-600">
-                  {formatNumber(sensors[0].pt_steam_pressure)}
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">
-                  tc1_stack_temperature
-                </div>
-                <div className="text-lg sm:text-2xl font-bold text-orange-600">
-                  {sensors[0].tc1_stack_temperature}°C
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-3 sm:p-4">
-                <div className="text-xs sm:text-sm text-gray-500">ทั้งหมด</div>
-                <div className="text-lg sm:text-2xl font-bold text-purple-600">
-                  {totalItems.toLocaleString()}
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-3 sm:p-4 col-span-2 sm:col-span-3 lg:col-span-1">
-                <div className="text-xs sm:text-sm text-gray-500">สถานะ</div>
-                <div className="text-lg sm:text-2xl font-bold text-green-600">
-                  ● ออนไลน์
-                </div>
-              </div>
-            </>
-          )}
-        </div>
 
         <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-4">
           <div className="text-xs sm:text-sm text-gray-600">

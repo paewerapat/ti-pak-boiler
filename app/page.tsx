@@ -156,7 +156,6 @@ export default function Dashboard() {
     try {
       setLoading(true);
 
-      const itemsPerPage = limit || pageSize;
       let url = `/api/sensors?noLimit=true`;
 
       if (start) {
@@ -173,6 +172,7 @@ export default function Dashboard() {
 
       const result = await response.json();
       console.log("Received data:", result.data?.length, "rows");
+      console.log("Received result data:", result.data);
       setSensors(result.data || []);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -188,18 +188,21 @@ export default function Dashboard() {
       dateString: string,
       format: "full" | "time" | "short"
     ): string => {
-      // ตัด .000Z ออก และ parse เป็น local time
-      const cleanDateStr = dateString.replace(/\.000Z$/, "").replace("T", " ");
-      const [datePart, timePart] = cleanDateStr.split(" ");
-      const [year, month, day] = datePart.split("-");
-      const [hours, minutes, seconds] = timePart.split(":");
+      const date = new Date(dateString);
+
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(date.getUTCDate()).padStart(2, "0");
+      const hours = String(date.getUTCHours()).padStart(2, "0");
+      const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+      const seconds = String(date.getUTCSeconds()).padStart(2, "0");
 
       if (format === "time") {
-        return `${hours}:${minutes}`; // "00:11"
+        return `${hours}:${minutes}`;
       } else if (format === "short") {
-        return `${day}/${month} ${hours}:${minutes}`; // "16/11 00:11"
+        return `${day}/${month} ${hours}:${minutes}`;
       } else {
-        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`; // "16/11/2025 00:11:31"
+        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
       }
     };
 
@@ -233,16 +236,18 @@ export default function Dashboard() {
     }, 100);
   };
 
-  const formatDatetimeLocal = (date: Date): string => {
+  // ✅ แก้ฟังก์ชันนี้ให้ return format YYYY-MM-DD HH:mm:ss
+  const formatDateTime = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const hours = String(date.getHours()).padStart(2, "0");
     const minutes = String(date.getMinutes()).padStart(2, "0");
     const seconds = String(date.getSeconds()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
+  // ✅ แก้ฟังก์ชัน updateTimeRange ให้นับเวลาย้อนหลังแบบแม่นยำ
   const updateTimeRange = (range: string) => {
     const now = new Date();
     let start = new Date(now);
@@ -250,25 +255,23 @@ export default function Dashboard() {
 
     switch (range) {
       case "1hour":
+        // ย้อนหลัง 1 ชั่วโมงจากเวลาปัจจุบัน
         start = new Date(now.getTime() - 1 * 60 * 60 * 1000);
         size = 360;
         break;
       case "24hours":
-        start = new Date(now);
-        start.setDate(start.getDate() - 1);
-        start.setHours(0, 0, 0, 0);
+        // ✅ แก้: ย้อนหลัง 24 ชั่วโมงจากเวลาปัจจุบัน (ไม่ใช่ 00:00:00)
+        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         size = 1440;
         break;
       case "1week":
-        start = new Date(now);
-        start.setDate(start.getDate() - 7);
-        start.setHours(0, 0, 0, 0);
+        // ✅ แก้: ย้อนหลัง 7 วันจากเวลาปัจจุบัน (ไม่ใช่ 00:00:00)
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         size = 2016;
         break;
       case "1month":
-        start = new Date(now);
-        start.setDate(start.getDate() - 30);
-        start.setHours(0, 0, 0, 0);
+        // ✅ แก้: ย้อนหลัง 30 วันจากเวลาปัจจุบัน (ไม่ใช่ 00:00:00)
+        start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         size = 3000;
         break;
       case "custom":
@@ -279,19 +282,19 @@ export default function Dashboard() {
     }
 
     setTimeRange(range);
-    setStartDate(formatDatetimeLocal(start));
-    setEndDate(formatDatetimeLocal(now));
+    setStartDate(formatDateTime(start));
+    setEndDate(formatDateTime(now));
     setPageSize(size);
 
     console.log("Time range updated:", {
       range,
-      start: formatDatetimeLocal(start),
-      end: formatDatetimeLocal(now),
+      start: formatDateTime(start),
+      end: formatDateTime(now),
       size,
     });
 
-    setChartLoading(true); // ✅ เริ่ม loading
-    fetchSensors(formatDatetimeLocal(start), formatDatetimeLocal(now), size);
+    setChartLoading(true);
+    fetchSensors(formatDateTime(start), formatDateTime(now), size);
   };
 
   const handleTimeRangeChange = (range: string) => {
@@ -303,11 +306,16 @@ export default function Dashboard() {
   };
 
   const toggleMetric = (metricKey: string) => {
-    if (selectedMetrics.includes(metricKey)) {
-      setSelectedMetrics(selectedMetrics.filter((m) => m !== metricKey));
-    } else {
-      setSelectedMetrics([...selectedMetrics, metricKey]);
-    }
+    const newSelectedMetrics = selectedMetrics.includes(metricKey)
+      ? selectedMetrics.filter((m) => m !== metricKey)
+      : [...selectedMetrics, metricKey];
+
+    setSelectedMetrics(newSelectedMetrics);
+    // บันทึกไปที่ localStorage ทันทีเพื่อ sync กับหน้า Report
+    localStorage.setItem("selectedMetrics", JSON.stringify(newSelectedMetrics));
+
+    // ✅ Trigger custom event เพื่อ sync ภายในหน้าเดียวกัน
+    window.dispatchEvent(new Event("metricsChanged"));
   };
 
   const handleBrushChange = (domain: any) => {
@@ -363,8 +371,36 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    localStorage.setItem("selectedMetrics", JSON.stringify(selectedMetrics));
-  }, [selectedMetrics]);
+    // Load จาก localStorage ตอนเริ่มต้น
+    const loadSelectedMetrics = () => {
+      const selectedMetricsStr = localStorage.getItem("selectedMetrics");
+      if (selectedMetricsStr) {
+        try {
+          const metrics = JSON.parse(selectedMetricsStr);
+          setSelectedMetrics(metrics);
+        } catch (e) {
+          console.error("Failed to parse selectedMetrics:", e);
+        }
+      }
+    };
+
+    loadSelectedMetrics();
+
+    // Listen storage event จากหน้าอื่น
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "selectedMetrics" && e.newValue) {
+        try {
+          const metrics = JSON.parse(e.newValue);
+          setSelectedMetrics(metrics);
+        } catch (error) {
+          console.error("Failed to parse storage event:", error);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const latestData = sensors[0];
 
@@ -374,16 +410,19 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Dashboard - History Trend Chart
+          <h1 className="text-3xl font-bold text-blue-800">
+            SPB040HH Boiler 4 T/H 16 Bar
           </h1>
+          <h2 className="text-xl font-bold text-gray-800">
+            Dashboard - History Trend Chart
+          </h2>
           <p className="text-sm text-gray-500 mt-1">
             แสดงกราฟแนวโน้มข้อมูลเซ็นเซอร์แบบ Real-time
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-          {metrics.slice(0, 5).map((metric) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          {metrics.map((metric) => {
             const value = latestData
               ? parseFloat(latestData[metric.key as keyof SensorData] as string)
               : 0;
@@ -643,6 +682,22 @@ export default function Dashboard() {
                     const value = parseFloat(
                       latestData[metric.key as keyof SensorData] as string
                     );
+
+                    // ✅ ใช้ UTC methods
+                    const date = new Date(latestData.record_time);
+                    const formattedTime = `${String(date.getUTCDate()).padStart(
+                      2,
+                      "0"
+                    )}/${String(date.getUTCMonth() + 1).padStart(
+                      2,
+                      "0"
+                    )}/${date.getUTCFullYear()} ${String(
+                      date.getUTCHours()
+                    ).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(
+                      2,
+                      "0"
+                    )}:${String(date.getUTCSeconds()).padStart(2, "0")}`;
+
                     return (
                       <tr key={metric.key} className="hover:bg-gray-50">
                         <td
@@ -655,17 +710,7 @@ export default function Dashboard() {
                           {value.toFixed(2)} {metric.unit}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {(() => {
-                            const cleanDateStr = latestData.record_time
-                              .replace(/\.000Z$/, "")
-                              .replace("T", " ");
-                            const [datePart, timePart] =
-                              cleanDateStr.split(" ");
-                            const [year, month, day] = datePart.split("-");
-                            const [hours, minutes, seconds] =
-                              timePart.split(":");
-                            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-                          })()}
+                          {formattedTime}
                         </td>
                       </tr>
                     );

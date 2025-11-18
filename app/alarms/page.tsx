@@ -83,7 +83,7 @@ export default function AlertsPage() {
       const result = await response.json();
 
       if (result.success) {
-        console.log('Sample alarm data:', result.data[0]);
+        console.log("Sample alarm data:", result.data[0]);
         setAlarms(result.data);
         setPagination(result.pagination);
         setLastUpdate(new Date().toLocaleString("th-TH"));
@@ -134,32 +134,16 @@ export default function AlertsPage() {
   const formatDateTime = (dateString: string) => {
     if (!dateString) return "-";
 
-    // ✅ รองรับทั้ง format ที่มี T และไม่มี T
-    let cleanDateStr = dateString
-      .replace(/\.000Z$/, "") // ตัด .000Z ออก
-      .replace("T", " ") // แปลง T เป็น space
-      .trim();
+    // ✅ แปลง Date object โดยใช้ UTC methods (เหมือน sensors)
+    const date = new Date(dateString);
 
-    const parts = cleanDateStr.split(" ");
-    if (parts.length !== 2) {
-      console.error("Invalid date format:", dateString);
-      return dateString; // fallback: แสดงค่าเดิม
-    }
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    const hours = String(date.getUTCHours()).padStart(2, "0");
+    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+    const seconds = String(date.getUTCSeconds()).padStart(2, "0");
 
-    const [datePart, timePart] = parts;
-
-    const dateParts = datePart.split("-");
-    const timeParts = timePart.split(":");
-
-    if (dateParts.length !== 3 || timeParts.length < 2) {
-      console.error("Invalid date/time parts:", dateString);
-      return dateString;
-    }
-
-    const [year, month, day] = dateParts;
-    const [hours, minutes, seconds = "00"] = timeParts;
-
-    // Format เป็นรูปแบบไทย: วัน/เดือน/ปี ชั่วโมง:นาที:วินาที
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
@@ -183,21 +167,28 @@ export default function AlertsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Alarm Logs</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            การแจ้งเตือนและประวัติการแจ้งเตือนของระบบ
-          </p>
-          {lastUpdate && (
-            <p className="mt-1 text-xs text-gray-500">
-              อัพเดทล่าสุด: {lastUpdate}
-            </p>
-          )}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-blue-800">
+                SPB040HH Boiler 4 T/H 16 Bar
+              </h1>
+              <h2 className="text-2xl font-bold text-gray-900">Alarm Logs</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                การแจ้งเตือนและประวัติการแจ้งเตือนของระบบ
+              </p>
+              {lastUpdate && (
+                <p className="mt-1 text-xs text-gray-500">
+                  อัพเดทล่าสุด: {lastUpdate}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Stats */}
@@ -367,15 +358,27 @@ export default function AlertsPage() {
                         onClick={() => handleSort("id")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        ID{" "}
-                        {sortBy === "id" && (sortOrder === "ASC" ? "↑" : "↓")}
+                        <div className="flex items-center gap-1">
+                          ID
+                          {sortBy === "id" && (
+                            <span className="text-xl font-bold">
+                              {sortOrder === "ASC" ? "↑" : "↓"}
+                            </span>
+                          )}
+                        </div>
                       </th>
                       <th
                         onClick={() => handleSort("name")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Name{" "}
-                        {sortBy === "name" && (sortOrder === "ASC" ? "↑" : "↓")}
+                        <div className="flex items-center gap-1">
+                          Name
+                          {sortBy === "name" && (
+                            <span className="text-xl font-bold">
+                              {sortOrder === "ASC" ? "↑" : "↓"}
+                            </span>
+                          )}
+                        </div>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Alarm Content
@@ -384,25 +387,40 @@ export default function AlertsPage() {
                         onClick={() => handleSort("status")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Status{" "}
-                        {sortBy === "status" &&
-                          (sortOrder === "ASC" ? "↑" : "↓")}
+                        <div className="flex items-center gap-1">
+                          Status
+                          {sortBy === "status" && (
+                            <span className="text-xl font-bold">
+                              {sortOrder === "ASC" ? "↑" : "↓"}
+                            </span>
+                          )}
+                        </div>
                       </th>
                       <th
                         onClick={() => handleSort("created_at")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Created At{" "}
-                        {sortBy === "created_at" &&
-                          (sortOrder === "ASC" ? "↑" : "↓")}
+                        <div className="flex items-center gap-1">
+                          Created At
+                          {sortBy === "created_at" && (
+                            <span className="text-xl font-bold">
+                              {sortOrder === "ASC" ? "↑" : "↓"}
+                            </span>
+                          )}
+                        </div>
                       </th>
                       <th
                         onClick={() => handleSort("ended_at")}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       >
-                        Ended At{" "}
-                        {sortBy === "ended_at" &&
-                          (sortOrder === "ASC" ? "↑" : "↓")}
+                        <div className="flex items-center gap-1">
+                          Ended At
+                          {sortBy === "ended_at" && (
+                            <span className="text-xl font-bold">
+                              {sortOrder === "ASC" ? "↑" : "↓"}
+                            </span>
+                          )}
+                        </div>
                       </th>
                     </tr>
                   </thead>

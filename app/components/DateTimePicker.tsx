@@ -29,7 +29,7 @@ export default function DateTimePicker({
       const minutes = String(date.getMinutes()).padStart(2, "0");
       const seconds = "00";
 
-      // ✅ ส่งออกเป็น format: YYYY-MM-DD HH:mm:ss
+      // ✅ ส่งเวลาไทยตรงๆ ไม่ต้องแปลง
       const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
       onChange(formatted);
     } else {

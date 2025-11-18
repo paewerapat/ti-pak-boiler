@@ -16,15 +16,50 @@ interface SensorRow extends RowDataPacket {
   record_time: string;
 }
 
+// ✅ เพิ่มฟังก์ชันแปลงเวลา
+function convertDisplayToDBTime(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  const displayDate = new Date(dateStr.replace('T', ' '));
+  const dbDate = new Date(displayDate.getTime() + (7 * 60 * 60 * 1000));
+  
+  const year = dbDate.getFullYear();
+  const month = String(dbDate.getMonth() + 1).padStart(2, '0');
+  const day = String(dbDate.getDate()).padStart(2, '0');
+  const hours = String(dbDate.getHours()).padStart(2, '0');
+  const minutes = String(dbDate.getMinutes()).padStart(2, '0');
+  const seconds = String(dbDate.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// ✅ เพิ่มฟังก์ชันแปลงเวลาสำหรับแสดงผล
+function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'csv';
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const startDateRaw = searchParams.get('startDate');
+    const endDateRaw = searchParams.get('endDate');
     const metricsParam = searchParams.get('metrics');
     
     const selectedMetrics = metricsParam ? metricsParam.split(',') : [];
+    
+    // ✅ แปลงเวลาจาก display time เป็น DB time
+    const startDate = startDateRaw ? convertDisplayToDBTime(startDateRaw) : null;
+    const endDate = endDateRaw ? convertDisplayToDBTime(endDateRaw) : null;
     
     let whereClause = '';
     const params: any[] = [];
@@ -65,7 +100,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       
       results.forEach(row => {
         const values = [
-          `"${new Date(row.record_time).toLocaleString('th-TH', { hour12: false })}"`,
+          `"${formatDateTime(row.record_time)}"`,
           ...columnsToExport.map(col => row[col as keyof SensorRow])
         ];
         csvRows.push(values.join(','));
@@ -83,25 +118,46 @@ export async function GET(request: Request): Promise<NextResponse> {
     } 
     
     if (format === 'excel') {
-      // สร้างข้อมูลสำหรับ Excel
-      const excelData = results.map(row => {
-        const rowData: any = {
-          'Record Time': new Date(row.record_time).toLocaleString('th-TH', { hour12: false })
-        };
-        
-        columnsToExport.forEach(col => {
-          rowData[col] = row[col as keyof SensorRow];
-        });
-        
-        return rowData;
+      // ✅ สร้าง array of arrays แทน json
+      const excelData: any[][] = [];
+      
+      // ✅ Row 1: Title
+      excelData.push(['SPB040HH Boiler 4 T/H 16 Bar']);
+      
+      // ✅ Row 2: Empty row (optional - เพื่อให้มีระยะห่าง)
+      excelData.push([]);
+      
+      // ✅ Row 3: Headers
+      const headers = ['Record Time', ...columnsToExport];
+      excelData.push(headers);
+      
+      // ✅ Row 4+: Data
+      results.forEach(row => {
+        const rowData = [
+          formatDateTime(row.record_time),
+          ...columnsToExport.map(col => row[col as keyof SensorRow])
+        ];
+        excelData.push(rowData);
       });
       
-      // สร้าง workbook และ worksheet
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      // ✅ สร้าง worksheet จาก array of arrays
+      const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+      
+      // ✅ (Optional) ปรับความกว้าง columns
+      const colWidths = [
+        { wch: 25 }, // Record Time column
+        ...columnsToExport.map(() => ({ wch: 15 })) // Data columns
+      ];
+      worksheet['!cols'] = colWidths;
+      
+      // ✅ (Optional) Merge cells สำหรับ title
+      worksheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: columnsToExport.length } } // Merge row 0 across all columns
+      ];
+      
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Sensors Report');
       
-      // แปลงเป็น buffer
       const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
       
       const dateRangeStr = startDate || endDate ? `_filtered` : '';

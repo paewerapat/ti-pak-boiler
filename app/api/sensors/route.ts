@@ -19,20 +19,22 @@ interface CountRow extends RowDataPacket {
   total: number;
 }
 
-// ✅ แปลงเวลาไทยเป็น UTC สำหรับ query database
-function convertThaiToUTC(dateStr: string): string {
+// ✅ แก้ฟังก์ชัน: บวก 7 ชั่วโมงแทนที่จะลบ (เหมือน alarms API)
+function convertDisplayToDBTime(dateStr: string): string {
   if (!dateStr) return '';
   
-  // สร้าง Date object จาก local time (เวลาไทย)
-  const localDate = new Date(dateStr.replace('T', ' '));
+  // user เลือกเวลาที่แสดง (09:45)
+  const displayDate = new Date(dateStr.replace('T', ' '));
   
-  // แปลงเป็น UTC string สำหรับ MySQL
-  const year = localDate.getUTCFullYear();
-  const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(localDate.getUTCDate()).padStart(2, '0');
-  const hours = String(localDate.getUTCHours()).padStart(2, '0');
-  const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
+  // บวก 7 ชั่วโมงเพื่อให้ตรงกับเวลาใน DB (16:45)
+  const dbDate = new Date(displayDate.getTime() + (7 * 60 * 60 * 1000));
+  
+  const year = dbDate.getFullYear();
+  const month = String(dbDate.getMonth() + 1).padStart(2, '0');
+  const day = String(dbDate.getDate()).padStart(2, '0');
+  const hours = String(dbDate.getHours()).padStart(2, '0');
+  const minutes = String(dbDate.getMinutes()).padStart(2, '0');
+  const seconds = String(dbDate.getSeconds()).padStart(2, '0');
   
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
@@ -46,14 +48,15 @@ export async function GET(request: Request): Promise<NextResponse> {
     const startDateRaw = searchParams.get('startDate');
     const endDateRaw = searchParams.get('endDate');
     const sortOrder = searchParams.get('sortOrder') || 'desc';
-    const noLimit = searchParams.get('noLimit') === 'true'; // ✅ เพิ่มพารามิเตอร์นี้
+    const noLimit = searchParams.get('noLimit') === 'true';
     
     const offset = (page - 1) * pageSize;
     
     const validSortOrder = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
     
-    const startDate = startDateRaw ? convertThaiToUTC(startDateRaw) : null;
-    const endDate = endDateRaw ? convertThaiToUTC(endDateRaw) : null;
+    // ✅ ใช้ฟังก์ชันใหม่ที่บวก 7 ชั่วโมง
+    const startDate = startDateRaw ? convertDisplayToDBTime(startDateRaw) : null;
+    const endDate = endDateRaw ? convertDisplayToDBTime(endDateRaw) : null;
     
     let whereClause = '';
     const params: any[] = [];
@@ -79,12 +82,11 @@ export async function GET(request: Request): Promise<NextResponse> {
     const countResult = await query(countSql, params) as CountRow[];
     const totalItems = countResult[0].total;
     
-    // ✅ Data query - เพิ่มเงื่อนไข noLimit
+    // Data query
     let dataSql;
     let queryParams;
     
     if (noLimit) {
-      // ดึงทั้งหมดโดยไม่ limit (สำหรับ dashboard chart)
       dataSql = `
         SELECT * FROM sensors 
         ${whereClause}
@@ -92,7 +94,6 @@ export async function GET(request: Request): Promise<NextResponse> {
       `;
       queryParams = params;
     } else {
-      // ดึงแบบมี pagination (สำหรับตาราง)
       dataSql = `
         SELECT * FROM sensors 
         ${whereClause}

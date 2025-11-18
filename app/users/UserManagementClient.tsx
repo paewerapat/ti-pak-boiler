@@ -52,6 +52,9 @@ export default function UserManagementClient({ session }: UserManagementClientPr
   // Search
   const [searchTerm, setSearchTerm] = useState<string>('');
 
+  // ✅ เช็คว่าผู้ใช้ปัจจุบันเป็น superadmin หรือไม่
+  const isSuperAdmin = session?.user?.username === 'admin';
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -65,7 +68,13 @@ export default function UserManagementClient({ session }: UserManagementClientPr
       if (!response.ok) throw new Error('Failed to fetch users');
       
       const data: User[] = await response.json();
-      setUsers(data);
+      
+      // ✅ Filter: ถ้าไม่ใช่ superadmin ให้ซ่อน user "admin"
+      const filteredData = isSuperAdmin 
+        ? data 
+        : data.filter(user => user.username !== 'admin');
+      
+      setUsers(filteredData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -88,6 +97,12 @@ export default function UserManagementClient({ session }: UserManagementClientPr
   };
 
   const handleEdit = (user: User) => {
+    // ✅ ป้องกันการแก้ไข user "admin" ถ้าไม่ใช่ superadmin
+    if (user.username === 'admin' && !isSuperAdmin) {
+      setError('คุณไม่มีสิทธิ์แก้ไขผู้ใช้นี้');
+      return;
+    }
+    
     setModalMode('edit');
     setSelectedUser(user);
     setFormData({
@@ -102,6 +117,21 @@ export default function UserManagementClient({ session }: UserManagementClientPr
   };
 
   const handleDelete = async (userId: number) => {
+    // ✅ ค้นหา user ที่จะลบ
+    const userToDelete = users.find(u => u.id === userId);
+    
+    // ✅ ป้องกันการลบ user "admin" ถ้าไม่ใช่ superadmin
+    if (userToDelete?.username === 'admin' && !isSuperAdmin) {
+      setError('คุณไม่มีสิทธิ์ลบผู้ใช้นี้');
+      return;
+    }
+    
+    // ✅ ป้องกันการลบตัวเอง
+    if (userToDelete?.username === session?.user?.username) {
+      setError('คุณไม่สามารถลบบัญชีของตัวเองได้');
+      return;
+    }
+    
     if (!confirm('คุณแน่ใจหรือไม่ที่จะลบผู้ใช้นี้?')) return;
     
     try {
@@ -109,7 +139,10 @@ export default function UserManagementClient({ session }: UserManagementClientPr
         method: 'DELETE',
       });
       
-      if (!response.ok) throw new Error('Failed to delete user');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user');
+      }
       
       setSuccessMessage('ลบผู้ใช้เรียบร้อยแล้ว');
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -121,6 +154,24 @@ export default function UserManagementClient({ session }: UserManagementClientPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ ป้องกันการสร้าง username "admin" ใหม่
+    if (modalMode === 'create' && formData.username === 'admin') {
+      setError('ไม่สามารถใช้ชื่อผู้ใช้ "admin" ได้');
+      return;
+    }
+    
+    // ✅ ป้องกันการเปลี่ยน username เป็น "admin"
+    if (modalMode === 'edit' && formData.username === 'admin' && selectedUser?.username !== 'admin') {
+      setError('ไม่สามารถเปลี่ยนชื่อผู้ใช้เป็น "admin" ได้');
+      return;
+    }
+    
+    // ✅ ป้องกันการแก้ไข user "admin" ถ้าไม่ใช่ superadmin
+    if (modalMode === 'edit' && selectedUser?.username === 'admin' && !isSuperAdmin) {
+      setError('คุณไม่มีสิทธิ์แก้ไขผู้ใช้นี้');
+      return;
+    }
     
     try {
       const url = modalMode === 'create' 
@@ -183,7 +234,6 @@ export default function UserManagementClient({ session }: UserManagementClientPr
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Navbar />
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
@@ -192,6 +242,12 @@ export default function UserManagementClient({ session }: UserManagementClientPr
               <h1 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Users className="w-6 h-6" />
                 จัดการผู้ใช้
+                {/* ✅ แสดง badge สำหรับ superadmin */}
+                {isSuperAdmin && (
+                  <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">
+                    Super Admin
+                  </span>
+                )}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
                 จำนวนผู้ใช้ทั้งหมด: {users.length} คน
@@ -289,6 +345,12 @@ export default function UserManagementClient({ session }: UserManagementClientPr
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-medium">
                         {user.username}
+                        {/* ✅ แสดง badge สำหรับ superadmin */}
+                        {user.username === 'admin' && (
+                          <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">
+                            Super
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {user.full_name}
@@ -350,7 +412,7 @@ export default function UserManagementClient({ session }: UserManagementClientPr
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal - เหมือนเดิม */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -377,11 +439,19 @@ export default function UserManagementClient({ session }: UserManagementClientPr
                     required
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    // ✅ ป้องกันการแก้ไข username ของ superadmin
+                    disabled={modalMode === 'edit' && selectedUser?.username === 'admin'}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     placeholder="username"
                   />
+                  {modalMode === 'edit' && selectedUser?.username === 'admin' && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      ไม่สามารถเปลี่ยนชื่อผู้ใช้ Super Admin ได้
+                    </p>
+                  )}
                 </div>
 
+                {/* ... ฟิลด์อื่นๆ เหมือนเดิม ... */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     ชื่อ-นามสกุล <span className="text-red-500">*</span>
