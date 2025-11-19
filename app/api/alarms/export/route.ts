@@ -12,6 +12,23 @@ interface AlarmRow extends RowDataPacket {
   ended_at: string | null;
 }
 
+// ✅ เพิ่มฟังก์ชันแปลงเวลา
+function convertDisplayToDBTime(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  const displayDate = new Date(dateStr.replace('T', ' '));
+  const dbDate = new Date(displayDate.getTime() + (7 * 60 * 60 * 1000));
+  
+  const year = dbDate.getFullYear();
+  const month = String(dbDate.getMonth() + 1).padStart(2, '0');
+  const day = String(dbDate.getDate()).padStart(2, '0');
+  const hours = String(dbDate.getHours()).padStart(2, '0');
+  const minutes = String(dbDate.getMinutes()).padStart(2, '0');
+  const seconds = String(dbDate.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 // ✅ ฟังก์ชันแปลงวันที่เพื่อแสดงผล (ใช้ UTC methods)
 function formatDateTime(dateString: string): string {
   if (!dateString) return "-";
@@ -34,9 +51,13 @@ export async function GET(request: NextRequest) {
 
     const format = searchParams.get("format") || "csv";
     const search = searchParams.get("search") || "";
-    const startDate = searchParams.get("startDate") || ""; // ✅ ใช้ค่าตรงๆ
-    const endDate = searchParams.get("endDate") || ""; // ✅ ใช้ค่าตรงๆ
+    const startDateRaw = searchParams.get("startDate") || ""; // ✅ ใช้ค่าตรงๆ
+    const endDateRaw = searchParams.get("endDate") || ""; // ✅ ใช้ค่าตรงๆ
     const status = searchParams.get("status") || "";
+
+    // ✅ แปลงเวลาจาก display time เป็น DB time
+    const startDate = startDateRaw ? convertDisplayToDBTime(startDateRaw) : null;
+    const endDate = endDateRaw ? convertDisplayToDBTime(endDateRaw) : null;
 
     let whereConditions: string[] = [];
     let queryParams: any[] = [];
